@@ -1,36 +1,63 @@
+/* Reset general i tipografia */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Segoe UI', system-ui, sans-serif;
-}
-
-body {
+  }
+  
+  body {
     background-color: #f5f5f5;
     min-height: 100vh;
-    padding: 2rem;
-}
-
-.container {
+    line-height: 1.6;
+  }
+  
+  /* Header amb imatge de fons */
+  header {
+    background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('images/Espana.jpg') center/cover no-repeat;
+    color: #fff;
+    padding: 4rem 2rem;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  header h1 {
+    font-size: 3em;
+    margin-bottom: 1rem;
+    font-weight: 300;
+  }
+  
+  header p {
+    max-width: 800px;
+    margin: 0.5rem auto;
+    font-size: 1.1em;
+  }
+  
+  /* Contenidor principal */
+  .container {
     max-width: 1200px;
     margin: 0 auto;
-}
-
-h1 {
+    padding: 0 2rem;
+  }
+  
+  .container h2 {
     text-align: center;
     color: #2d3436;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     font-weight: 300;
     font-size: 2.5em;
-}
-
-.ciutats-grid {
+  }
+  
+  /* Grid de ciutats */
+  .ciutats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
-}
-
-.ciutat-btn {
+    padding: 0 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .ciutat-btn {
     position: relative;
     height: 300px;
     border: none;
@@ -43,9 +70,9 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.ciutat-btn::before {
+  }
+  
+  .ciutat-btn::before {
     content: '';
     position: absolute;
     top: 0;
@@ -54,17 +81,17 @@ h1 {
     bottom: 0;
     background: rgba(0, 0, 0, 0.4);
     transition: background 0.3s ease;
-}
-
-.ciutat-btn:hover {
+  }
+  
+  .ciutat-btn:hover {
     transform: scale(1.03);
-}
-
-.ciutat-btn:hover::before {
+  }
+  
+  .ciutat-btn:hover::before {
     background: rgba(0, 0, 0, 0.3);
-}
-
-.ciutat-nom {
+  }
+  
+  .ciutat-nom {
     position: relative;
     color: white;
     font-size: 2em;
@@ -72,20 +99,59 @@ h1 {
     text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
     text-align: center;
     z-index: 1;
-}
-
-@media (max-width: 768px) {
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
     .ciutats-grid {
-        grid-template-columns: 1fr;
+      grid-template-columns: 1fr;
     }
-    
-    h1 {
-        font-size: 2em;
+    header h1 {
+      font-size: 2.5em;
     }
-}
-
-/* Classes específiques per a les imatges */
-.ciutat-btn.madrid { background-image: url('images/Madrid.jpg'); }
-.ciutat-btn.barcelona { background-image: url('images/Barcelona.jpg'); }
-.ciutat-btn.valencia { background-image: url('images/Valencia.jpg'); }
-.ciutat-btn.palma { background-image: url('images/Palma.jpg'); }
+  }
+  
+  /* Imatges específiques per a cada ciutat */
+  .ciutat-btn.madrid { background-image: url('images/Madrid.jpg'); }
+  .ciutat-btn.barcelona { background-image: url('images/Barcelona.jpg'); }
+  .ciutat-btn.valencia { background-image: url('images/Valencia.jpg'); }
+  .ciutat-btn.palma { background-image: url('images/Palma.jpg'); }
+  
+  /* Estils per a la secció del vídeo (modal) */
+  .video-section {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .video-container {
+    position: relative;
+    width: 80%;
+    max-width: 800px;
+    background: #000;
+  }
+  
+  .video-container iframe {
+    width: 100%;
+    height: 450px;
+  }
+  
+  #closeVideo {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #fff;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 16px;
+    z-index: 1001;
+  }
+  
