@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video de la ciudad</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #fff;
+      margin: 0;
+      color: #000;
+    }
+    .video-container {
+      width: 80%;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+    .video-container iframe {
+      width: 100%;
+      height: 450px;
+    }
+    .back-link {
+      color: #000;
+      text-decoration: none;
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="cityName">Video de la ciudad</h1>
+  </header>
+  <div class="video-container">
+    <iframe id="videoIframe" src="" frameborder="0" allowfullscreen></iframe>
+  </div>
+  <a class="back-link" href="index.html">← Volver a la página principal</a>
+
+  <script>
+    // Función para obtener parámetros de la URL
+    const params = new URLSearchParams(window.location.search);
+    const city = params.get('city');
+
+    let videoURL = '';
+    let title = 'Video de la ciudad';
+
+    switch(city) {
+      case 'madrid':
+        videoURL = '';
+        break;
+      case 'barcelona':
+        videoURL = '';
+        title = 'Video de Barcelona';
+        break;
+      case 'valencia':
+        videoURL = '';
+        title = 'Video de Valencia';
+        break;
+      case 'palma':
+        videoURL = '';
+        title = 'Video de Palma';
+        break;
+      default:
+        videoURL = '';
+        title = 'Video no encontrado';
+    }
+
+    document.getElementById('videoIframe').src = videoURL;
+ 
