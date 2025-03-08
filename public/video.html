@@ -6,7 +6,6 @@
   <title>Video de la ciudad</title>
   <link rel="stylesheet" href="style.css">
   <style>
-
     body {
       display: flex;
       flex-direction: column;
@@ -22,10 +21,6 @@
       max-width: 800px;
       margin: 20px auto;
     }
-    .video-container iframe {
-      width: 100%;
-      height: 450px;
-    }
     .back-link {
       color: #000;
       text-decoration: none;
@@ -39,12 +34,15 @@
     <h1 id="cityName">Video de la ciudad</h1>
   </header>
   <div class="video-container">
-    <iframe id="videoIframe" src="" frameborder="0" allowfullscreen></iframe>
+    <!-- Usamos <video> en lugar de <iframe> para archivos locales -->
+    <video id="videoPlayer" controls width="100%" height="450">
+      Tu navegador no soporta la reproducción de video.
+    </video>
   </div>
   <a class="back-link" href="index.html">← Volver a la página principal</a>
 
   <script>
-    // Función para obtener parámetros de la URL
+    // Obtener parámetros de la URL
     const params = new URLSearchParams(window.location.search);
     const city = params.get('city');
 
@@ -53,19 +51,19 @@
 
     switch(city) {
         case 'madrid':
-            videoURL = 'https://uibes-my.sharepoint.com/personal/nst534_id_uib_eu/_layouts/15/embed.aspx?UniqueId=d884b148-e7f2-4a15-a278-c7dee338ef87'; 
+            videoURL = 'videos/madrid/videoMadrid.mp4';
             title = 'Video de Madrid';
             break;
         case 'barcelona':
-            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo'; 
+            videoURL = '';
             title = 'Video de Barcelona';
             break;
         case 'valencia':
-            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo'; 
+            videoURL = '';
             title = 'Video de Valencia';
             break;
         case 'palma':
-            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo'; 
+            videoURL = '';
             title = 'Video de Palma';
             break;
         default:
@@ -73,6 +71,9 @@
             title = 'Video no encontrado';
     }
 
-    document.getElementById('videoIframe').src = videoURL;
+    // Asignar la URL al elemento de video
+    document.getElementById('videoPlayer').src = videoURL;
     document.getElementById('cityName').textContent = title;
-</script> <!-- ¡Cierre faltante añadido! -->
+  </script>
+</body>
+</html>
