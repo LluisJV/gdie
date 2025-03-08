@@ -52,25 +52,27 @@
     let title = 'Video de la ciudad';
 
     switch(city) {
-      case 'madrid':
-        videoURL = '';
-        break;
-      case 'barcelona':
-        videoURL = '';
-        title = 'Video de Barcelona';
-        break;
-      case 'valencia':
-        videoURL = '';
-        title = 'Video de Valencia';
-        break;
-      case 'palma':
-        videoURL = '';
-        title = 'Video de Palma';
-        break;
-      default:
-        videoURL = '';
-        title = 'Video no encontrado';
+        case 'madrid':
+            videoURL = 'https://uibes-my.sharepoint.com/personal/nst534_id_uib_eu/_layouts/15/embed.aspx?UniqueId=d884b148-e7f2-4a15-a278-c7dee338ef87'; 
+            title = 'Video de Madrid';
+            break;
+        case 'barcelona':
+            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo'; 
+            title = 'Video de Barcelona';
+            break;
+        case 'valencia':
+            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo'; 
+            title = 'Video de Valencia';
+            break;
+        case 'palma':
+            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo'; 
+            title = 'Video de Palma';
+            break;
+        default:
+            videoURL = '';
+            title = 'Video no encontrado';
     }
 
     document.getElementById('videoIframe').src = videoURL;
- 
+    document.getElementById('cityName').textContent = title;
+</script> <!-- ¡Cierre faltante añadido! -->

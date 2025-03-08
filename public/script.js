@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function() {
     const cityButtons = document.querySelectorAll('.ciutat-btn');
     const videoSection = document.getElementById('videoSection');
@@ -11,18 +12,19 @@ document.addEventListener('DOMContentLoaded', function() {
         let city = button.classList[1];
         let videoURL = '';
   
+        // Actualizar las URLs del switch
         switch(city) {
           case 'madrid':
-            videoURL = '';
+            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo';
             break;
           case 'barcelona':
-            videoURL = '';
+            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo';
             break;
           case 'valencia':
-            videoURL = '';
+            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo';
             break;
           case 'palma':
-            videoURL = '';
+            videoURL = 'https://www.youtube.com/embed/eGDOeMCViCo';
             break;
           default:
             videoURL = '';
