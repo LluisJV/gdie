@@ -359,7 +359,7 @@ function updateMap(currentTime) {
     }
   }
 
-  // If there is a location for this time, show it on the map
+  // If there is a location for this time, show it on the map only (not as an overlay on the video)
   if (currentLocation) {
     // Clear all existing markers
     clearMarkers();
@@ -372,6 +372,12 @@ function updateMap(currentTime) {
     map.getView().setCenter(olLocation);
 
     console.log(`Map updated to: ${currentLocation.name}`);
+    
+    // Remove any existing location labels from the video
+    const existingLabels = document.querySelectorAll('.location-label');
+    existingLabels.forEach(label => {
+      label.parentNode.removeChild(label);
+    });
   }
 }
 
@@ -443,7 +449,6 @@ function changeLanguage(language) {
 function initializeVideoPlayer() {
   const videoElement = document.getElementById('videoPlayer');
   player = new Plyr(videoElement, {
-    captions: { active: true, update: true, language: 'es' },
     controls: [
       'play-large',
       'play',
@@ -536,6 +541,27 @@ document.addEventListener('DOMContentLoaded', function() {
   loadLocationsVTT();
   initMap();
   initializeVideoPlayer();
+  
+  // Ocultar etiquetas de ubicación que aparecen en el video
+  // Esto necesita ejecutarse después de que el video se ha cargado
+  setTimeout(() => {
+    // Desactivar todas las pistas de texto que contengan ubicaciones
+    const tracks = document.querySelector('#videoPlayer').textTracks;
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      // Si la pista contiene "[" (formato de ubicaciones), ocultarla
+      if (track.label.includes('[')) {
+        track.mode = 'hidden';
+      }
+    }
+    
+    // Forzar la eliminación de cualquier etiqueta de ubicación visible
+    const videoContainer = document.querySelector('.video-container');
+    const locationLabels = videoContainer.querySelectorAll('div[style*="position: absolute"]');
+    locationLabels.forEach(label => label.remove());
+    
+    console.log('Se han ocultado las etiquetas de ubicación');
+  }, 500);
 
   // Add language selector
   const languageSelector = document.createElement('select');
