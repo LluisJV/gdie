@@ -53,6 +53,13 @@
         case 'madrid':
             videoURL = 'videos/madrid/videoMadrid.mp4';
             title = 'Video de Madrid';
+            const track = document.createElement('track');
+            track.kind = 'captions';
+            track.label = 'Español';
+            track.srclang = 'es';
+            track.src = 'vtts/subtitulosMadrid.vtt';
+            track.default = true; 
+            videoPlayer.appendChild(track);
             break;
         case 'barcelona':
             videoURL = '';
