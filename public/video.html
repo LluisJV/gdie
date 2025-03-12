@@ -33,16 +33,6 @@
         position: relative;
       }
 
-      .video-controls {
-        display: flex;
-        align-items: center;
-        margin-top: 0;
-        padding: 8px 10px;
-        background: rgba(0, 0, 0, 0.8);
-        border-radius: 0 0 4px 4px;
-        color: white;
-      }
-
       .quality-selector {
         display: flex;
         align-items: center;
@@ -59,7 +49,7 @@
         padding: 4px 8px;
         border-radius: 3px;
         border: none;
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: white;
         color: black;
         font-size: 14px;
         cursor: pointer;
@@ -127,6 +117,16 @@
       <h1 id="cityName">Tour en la ciudad</h1>
     </header>
     <a class="back-link" href="index.html">← Volver a la página principal</a>
+
+    <div style="text-align: left; margin: 15px auto; max-width: 80%;">
+      <label for="quality">Calidad:</label>
+      <select name="quality" id="quality" onchange="setVideoSource(this.value)" style="padding: 4px 8px; border-radius: 3px; border: none; background-color: white; color: black; font-size: 14px; cursor: pointer;">
+        <option value="4k">4K</option>
+        <option value="1080">1080p</option>
+        <option value="480">480p</option>
+      </select>
+    </div>
+
     <div class="content-container">
       <!-- Video container with player -->
       <div class="video-container">
@@ -139,16 +139,6 @@
             Tu navegador no soporta la reproducción de video.
           </video>
         </div>
-        <div class="video-controls">
-          <div class="quality-selector">
-            <label for="quality">Calidad:</label>
-            <select name="quality" id="quality" onchange="setVideoSource(this.value)">
-              <option value="4k">4K</option>
-              <option value="1080">1080p</option>
-              <option value="480">480p</option>
-            </select>
-          </div>
-        </div>
       </div>
       <div class="map-container">
         <div id="map"></div>
@@ -158,6 +148,7 @@
         <div id="transcriptText">Cargando explicación...</div>
       </div>
     </div>
+    
     <!-- Plyr JavaScript -->
     <script src="https://cdn.plyr.io/3.7.2/plyr.js"></script>
     <!-- OpenLayers JavaScript -->
