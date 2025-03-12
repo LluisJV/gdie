@@ -32,7 +32,7 @@ function initializeVideoPage() {
 
   switch (city) {
     case "madrid":
-      videoURL = "videos/madrid/videoMadrid.mp4";
+      videoURL = "videos/madrid/videoMadrid_4k.mp4";
       vttURL = "vtts/madrid/explicacionesMadrid.vtt";
       subtitlesURL = "vtts/madrid/subtitulosMadrid.vtt"; // URL for subtitles
       locationsURL = "vtts/madrid/ubicacionesMadrid.vtt"; // URL for locations
@@ -445,9 +445,37 @@ function changeLanguage(language) {
     setExplanations(language);
 }
 
+function setVideoSource(quality) {
+  const videoElement = document.getElementById('videoPlayer');
+  const source = videoElement.getElementsByTagName('source')[0];
+  let videoURL = `videos/madrid/videoMadrid_${quality}.mp4`;
+  
+  // Guardar la posición actual del video
+  const currentTime = videoElement.currentTime;
+  const isPaused = videoElement.paused;
+  
+  // Actualizar la fuente del video
+  source.src = videoURL;
+  
+  // Recargar el video
+  videoElement.load();
+  
+  // Restaurar la posición y el estado de reproducción
+  videoElement.addEventListener('loadedmetadata', function onLoadedMetadata() {
+    videoElement.currentTime = currentTime;
+    if (!isPaused) {
+      videoElement.play();
+    }
+    videoElement.removeEventListener('loadedmetadata', onLoadedMetadata);
+    console.log(`Video cambiado a calidad: ${quality}`);
+  });
+}
+
 // Initialize the video player with Plyr
 function initializeVideoPlayer() {
   const videoElement = document.getElementById('videoPlayer');
+  
+  // Configuración de Plyr
   player = new Plyr(videoElement, {
     controls: [
       'play-large',

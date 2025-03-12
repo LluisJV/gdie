@@ -26,11 +26,54 @@
         margin-left: auto;
         margin-right: auto;
       }
+
       .video-container {
-        flex: 2;
-        min-width: 400px;
-        max-width: 800px;
+        flex: 1 1 60%;
+        min-width: 320px;
+        position: relative;
       }
+
+      .video-controls {
+        display: flex;
+        align-items: center;
+        margin-top: 0;
+        padding: 8px 10px;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 0 0 4px 4px;
+        color: white;
+      }
+
+      .quality-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+      }
+
+      .quality-selector label {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .quality-selector select {
+        padding: 4px 8px;
+        border-radius: 3px;
+        border: none;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .quality-selector select:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .quality-selector select:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 179, 255, 0.5);
+      }
+
       .map-container {
         flex: 1;
         min-width: 250px;
@@ -89,12 +132,22 @@
       <div class="video-container">
         <div data-plyr-provider="html5" class="js-player plyr">
           <video id="videoPlayer" controls width="100%" height="450" crossorigin="anonymous">
-            <source src="" type="video/mp4">
+            <source src="videos/madrid/videoMadrid_4k.mp4" type="video/mp4">
             <track id="subtitlesTrack_es" kind="subtitles" label="Español" srclang="es" src="vtts/madrid/subtitulosMadrid.vtt">
             <track id="subtitlesTrack_en" kind="subtitles" label="English" srclang="en" src="vtts/madrid/subtitulosMadrid_en.vtt">
             <track id="subtitlesTrack_ca" kind="subtitles" label="Català" srclang="ca" src="vtts/madrid/subtitulosMadrid_ca.vtt">
             Tu navegador no soporta la reproducción de video.
           </video>
+        </div>
+        <div class="video-controls">
+          <div class="quality-selector">
+            <label for="quality">Calidad:</label>
+            <select name="quality" id="quality" onchange="setVideoSource(this.value)">
+              <option value="4k">4K</option>
+              <option value="1080">1080p</option>
+              <option value="480">480p</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="map-container">
