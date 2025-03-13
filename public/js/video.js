@@ -40,17 +40,17 @@ function initializeVideoPage() {
       mapCenter = cityCoordinates.madrid;
       break;
     case "barcelona":
-      videoURL = "";
+      videoURL = "videos/barcelona/videoBarcelona_4k.mp4";
       title = "Tour en Barcelona";
       mapCenter = cityCoordinates.barcelona;
       break;
     case "valencia":
-      videoURL = "";
+      videoURL = "videos/valencia/videoValencia_4k.mp4";
       title = "Tour en Valencia";
       mapCenter = cityCoordinates.valencia;
       break;
     case "palma":
-      videoURL = "";
+      videoURL = "videos/palma/videoPalma_4k.mp4";
       title = "Tour en Palma";
       mapCenter = cityCoordinates.palma;
       break;
