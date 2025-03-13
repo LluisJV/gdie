@@ -6,7 +6,10 @@
     <title>Tour en la ciudad</title>
     <link rel="stylesheet" href="style.css" />
     <!-- OpenLayers CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.1.0/ol.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/ol@v7.1.0/ol.css"
+    />
     <!-- Plyr CSS -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.2/plyr.css" />
     <style>
@@ -16,7 +19,7 @@
         visibility: hidden !important;
         opacity: 0 !important;
       }
-      
+
       .content-container {
         display: flex;
         flex-wrap: wrap;
@@ -71,7 +74,7 @@
         border: 1px solid #ccc;
         border-radius: 5px;
         overflow: hidden;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       }
       .transcript-container {
         flex: 1 0 100%;
@@ -98,7 +101,7 @@
         display: block;
         margin: 20px;
         text-decoration: none;
-        color: #0078A8;
+        color: #0078a8;
         font-weight: bold;
       }
       header {
@@ -106,7 +109,8 @@
         margin: 20px 0;
       }
       @media (max-width: 768px) {
-        .video-container, .map-container {
+        .video-container,
+        .map-container {
           flex: 1 0 100%;
         }
       }
@@ -118,12 +122,25 @@
     </header>
     <a class="back-link" href="index.html">← Volver a la página principal</a>
 
-    <div style="text-align: left; margin: 15px auto; max-width: 80%;">
+    <div style="text-align: left; margin: 15px auto; max-width: 80%">
       <label for="quality">Calidad:</label>
-      <select name="quality" id="quality" onchange="setVideoSource(this.value)" style="padding: 4px 8px; border-radius: 3px; border: none; background-color: white; color: black; font-size: 14px; cursor: pointer;">
+      <select
+        name="quality"
+        id="quality"
+        onchange="setVideoSource(this.value)"
+        style="
+          padding: 4px 8px;
+          border-radius: 3px;
+          border: none;
+          background-color: white;
+          color: black;
+          font-size: 14px;
+          cursor: pointer;
+        "
+      >
         <option value="4k">4K</option>
-        <option value="1080">1080p</option>
-        <option value="480">480p</option>
+        <option value="1080p">1080p</option>
+        <option value="480p">480p</option>
       </select>
     </div>
 
@@ -131,11 +148,35 @@
       <!-- Video container with player -->
       <div class="video-container">
         <div data-plyr-provider="html5" class="js-player plyr">
-          <video id="videoPlayer" controls width="100%" height="450" crossorigin="anonymous">
-            <source src="videos/madrid/videoMadrid_4k.mp4" type="video/mp4">
-            <track id="subtitlesTrack_es" kind="subtitles" label="Español" srclang="es" src="vtts/madrid/subtitulosMadrid.vtt">
-            <track id="subtitlesTrack_en" kind="subtitles" label="English" srclang="en" src="vtts/madrid/subtitulosMadrid_en.vtt">
-            <track id="subtitlesTrack_ca" kind="subtitles" label="Català" srclang="ca" src="vtts/madrid/subtitulosMadrid_ca.vtt">
+          <video
+            id="videoPlayer"
+            controls
+            width="100%"
+            height="450"
+            crossorigin="anonymous"
+          >
+            <source src="videos/madrid/videoMadrid_4k.mp4" type="video/mp4" />
+            <track
+              id="subtitlesTrack_es"
+              kind="subtitles"
+              label="Español"
+              srclang="es"
+              src="vtts/madrid/subtitulosMadrid.vtt"
+            />
+            <track
+              id="subtitlesTrack_en"
+              kind="subtitles"
+              label="English"
+              srclang="en"
+              src="vtts/madrid/subtitulosMadrid_en.vtt"
+            />
+            <track
+              id="subtitlesTrack_ca"
+              kind="subtitles"
+              label="Català"
+              srclang="ca"
+              src="vtts/madrid/subtitulosMadrid_ca.vtt"
+            />
             Tu navegador no soporta la reproducción de video.
           </video>
         </div>
@@ -148,7 +189,7 @@
         <div id="transcriptText">Cargando explicación...</div>
       </div>
     </div>
-    
+
     <!-- Plyr JavaScript -->
     <script src="https://cdn.plyr.io/3.7.2/plyr.js"></script>
     <!-- OpenLayers JavaScript -->

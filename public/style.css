@@ -232,3 +232,40 @@
       font-size: 2.5em;
     }
   }
+
+  /* Tablet styles */
+  @media (max-width: 1024px) {
+    .content-container {
+      max-width: 95%;
+    }
+    .video-container {
+      flex: 1 1 70%;
+      max-width: none;
+    }
+    .map-container {
+      flex: 1 1 100%;
+      height: 300px;
+    }
+    .transcript-container {
+      margin-top: 10px;
+      padding: 10px;
+    }
+  }
+
+  /* Mobile styles */
+  @media (max-width: 600px) {
+    .content-container {
+      flex-direction: column;
+      align-items: center;
+    }
+    .video-container {
+      width: 100%;
+      min-width: auto;
+      max-width: none;
+    }
+    .map-container {
+      width: 100%;
+      height: 300px;
+      display: block; /* Asegurar que el mapa se muestre */
+    }
+  }

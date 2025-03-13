@@ -29,10 +29,20 @@ let mapZoom = 12; // Adjust zoom for OpenLayers
 function initializeVideoPage() {
   const params = new URLSearchParams(window.location.search);
   const city = params.get("city");
+  const quality = params.get("quality");
+  let videoQuality = quality;
+
+  if (!videoQuality) {
+    videoQuality = "1080p"; // Calidad por defecto
+  }
+
+  window.videoQuality = videoQuality;
+
+  let videoExtension = `_${videoQuality}.mp4`;
 
   switch (city) {
     case "madrid":
-      videoURL = "videos/madrid/videoMadrid_4k.mp4";
+      videoURL = `videos/madrid/videoMadrid${videoExtension}`;
       vttURL = "vtts/madrid/explicacionesMadrid.vtt";
       subtitlesURL = "vtts/madrid/subtitulosMadrid.vtt"; // URL for subtitles
       locationsURL = "vtts/madrid/ubicacionesMadrid.vtt"; // URL for locations
@@ -40,7 +50,7 @@ function initializeVideoPage() {
       mapCenter = cityCoordinates.madrid;
       break;
     case "barcelona":
-      videoURL = "videos/barcelona/videoBarcelona_4k.mp4";
+      videoURL = `videos/barcelona/videoBarcelona${videoExtension}`;
       vttURL = "vtts/barcelona/explicacionesBarcelona.vtt";
       subtitlesURL = "vtts/barcelona/subtitulosBarcelona.vtt"; // URL for subtitles
       locationsURL = "vtts/barcelona/ubicacionesBarcelona.vtt"; // URL for locations
@@ -48,7 +58,7 @@ function initializeVideoPage() {
       mapCenter = cityCoordinates.barcelona;
       break;
     case "valencia":
-      videoURL = "videos/valencia/videoValencia_4k.mp4";
+      videoURL = `videos/valencia/videoValencia${videoExtension}`;
       vttURL = "vtts/valencia/explicacionesValencia.vtt";
       subtitlesURL = "vtts/valencia/subtitulosValencia.vtt"; // URL for subtitles
       locationsURL = "vtts/valencia/ubicacionesValencia.vtt"; // URL for locations
@@ -56,7 +66,7 @@ function initializeVideoPage() {
       mapCenter = cityCoordinates.valencia;
       break;
     case "palma":
-      videoURL = "videos/palma/videoPalma_4k.mp4";
+      videoURL = `videos/palma/videoPalma${videoExtension}`;
       vttURL = "vtts/palma/explicacionesPalma.vtt";
       subtitlesURL = "vtts/palma/subtitulosPalma.vtt"; // URL for subtitles
       locationsURL = "vtts/palma/ubicacionesPalma.vtt"; // URL for locations
@@ -70,6 +80,16 @@ function initializeVideoPage() {
 
   // Set the page title
   document.getElementById("cityName").textContent = title;
+
+  // Redirect to URL with quality parameter
+  if (!params.get("quality")) {
+    const newURL = `${window.location.pathname}?city=${city}&quality=${window.videoQuality}`;
+    window.location.href = newURL;
+  }
+
+  // Set selected quality in the selector
+  const qualitySelector = document.getElementById("quality");
+  qualitySelector.value = window.videoQuality;
 }
 
 // Initialize the map
@@ -476,14 +496,17 @@ function changeLanguage(language) {
 }
 
 function setVideoSource(quality) {
-  const videoElement = document.getElementById("videoPlayer");
-  const source = videoElement.getElementsByTagName("source")[0];
+  const params = new URLSearchParams(window.location.search);
+  const city = params.get("city");
+
+  // Redirect to URL with new quality parameter
+  const newURL = `${window.location.pathname}?city=${city}&quality=${quality}`;
+  window.location.href = newURL;
 
   // Obtener la ciudad de la URL actual del video
-  const city = videoURL.split("/")[1]; // e.g., "madrid" from "videos/madrid/videoMadrid_4k.mp4"
   let newVideoURL = `videos/${city}/video${
     city.charAt(0).toUpperCase() + city.slice(1)
-  }_${quality}.mp4`;
+  }_${window.videoQuality}.mp4`;
 
   // Guardar la posición actual del video
   const currentTime = videoElement.currentTime;
@@ -555,6 +578,10 @@ function initializeVideoPlayer() {
         src: videoURL,
         type: "video/mp4",
       },
+      {
+        src: videoURL.replace(".mp4", ".webm"),
+        type: "video/webm",
+      },
     ],
     tracks: [
       {
@@ -593,6 +620,9 @@ function initializeVideoPlayer() {
 
   // Set initial subtitles language
   setSubtitles(currentLanguage);
+
+  // Set initial video source
+  setVideoSource();
 }
 
 // Initialize everything when the DOM is loaded
