@@ -12,109 +12,6 @@
     />
     <!-- Plyr CSS -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.2/plyr.css" />
-    <style>
-      /* Ocultar las etiquetas de ubicación que aparecen superpuestas en el video */
-      video::cue {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-      }
-
-      .content-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        margin: 0;
-        max-width: 80%;
-        margin-left: auto;
-        margin-right: auto;
-      }
-
-      .video-container {
-        flex: 2 1 85%;
-        min-width: 320px;
-        position: relative;
-      }
-
-      .quality-selector {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: auto;
-      }
-
-      .quality-selector label {
-        font-size: 14px;
-        font-weight: 500;
-      }
-
-      .quality-selector select {
-        padding: 4px 8px;
-        border-radius: 3px;
-        border: none;
-        background-color: white;
-        color: black;
-        font-size: 14px;
-        cursor: pointer;
-      }
-
-      .quality-selector select:hover {
-        background-color: rgba(255, 255, 255, 0.3);
-      }
-
-      .quality-selector select:focus {
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(0, 179, 255, 0.5);
-      }
-
-      .map-container {
-        flex: 1 1 15%;
-        min-width: 250px;
-        height: 450px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        overflow: hidden;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-      .transcript-container {
-        flex: 1 0 100%;
-        margin-top: 20px;
-        padding: 15px;
-        background-color: #f9f9f9;
-        border-radius: 5px;
-        border: 1px solid #eee;
-      }
-      #map {
-        height: 100%;
-        width: 100%;
-      }
-      .explanation-title {
-        font-weight: bold;
-        margin-bottom: 10px;
-        font-size: 1.2em;
-        color: #333;
-      }
-      .current-explanation {
-        line-height: 1.5;
-      }
-      .back-link {
-        display: block;
-        margin: 20px;
-        text-decoration: none;
-        color: #0078a8;
-        font-weight: bold;
-      }
-      header {
-        text-align: center;
-        margin: 20px 0;
-      }
-      @media (max-width: 768px) {
-        .video-container,
-        .map-container {
-          flex: 1 0 100%;
-        }
-      }
-    </style>
   </head>
   <body>
     <header>
@@ -122,21 +19,12 @@
     </header>
     <a class="back-link" href="index.html">← Volver a la página principal</a>
 
-    <div style="text-align: left; margin: 15px auto; max-width: 80%">
+    <div class="quality-selector-container">
       <label for="quality">Calidad:</label>
       <select
         name="quality"
         id="quality"
         onchange="setVideoSource(this.value)"
-        style="
-          padding: 4px 8px;
-          border-radius: 3px;
-          border: none;
-          background-color: white;
-          color: black;
-          font-size: 14px;
-          cursor: pointer;
-        "
       >
         <option value="4k">4K</option>
         <option value="1080p">1080p</option>
@@ -148,13 +36,7 @@
       <!-- Video container with player -->
       <div class="video-container">
         <div data-plyr-provider="html5" class="js-player plyr">
-          <video
-            id="videoPlayer"
-            controls
-            width="100%"
-            height="450"
-            crossorigin="anonymous"
-          >
+          <video id="videoPlayer" controls crossorigin="anonymous">
             <source src="videos/madrid/videoMadrid_4k.mp4" type="video/mp4" />
             <track
               id="subtitlesTrack_es"
@@ -186,7 +68,7 @@
       </div>
       <div class="transcript-container">
         <div class="explanation-title">Explicación:</div>
-        <div id="transcriptText">Cargando explicación...</div>
+        <div id="transcriptText" class="current-explanation">Cargando explicación...</div>
       </div>
     </div>
 
