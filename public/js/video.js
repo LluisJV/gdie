@@ -27,13 +27,33 @@ let mapZoom = 12; // Adjust zoom for OpenLayers
 
 // Get URL parameters
 function initializeVideoPage() {
+  let videoQuality;
+
+  // Define breakpoints for media queries
+  const desktop = window.matchMedia("(min-width: 1920px)"); // Example breakpoint for desktop
+  const laptop = window.matchMedia(
+    "(min-width: 1024px) and (max-width: 1919px)"
+  ); // Example breakpoint for laptop
+  const mobile = window.matchMedia("(max-width: 1023px)"); // Example breakpoint for mobile
+
+  // Determine video quality based on screen size
+  if (desktop.matches) {
+    videoQuality = "4k";
+  } else if (laptop.matches) {
+    videoQuality = "1080p";
+  } else if (mobile.matches) {
+    videoQuality = "480p";
+  } else {
+    videoQuality = "1080p"; // Default quality if no media query matches
+  }
+
   const params = new URLSearchParams(window.location.search);
   const city = params.get("city");
   const quality = params.get("quality");
-  let videoQuality = quality;
 
-  if (!videoQuality) {
-    videoQuality = "1080p"; // Calidad por defecto
+  // Override video quality with URL parameter if provided
+  if (quality) {
+    videoQuality = quality;
   }
 
   window.videoQuality = videoQuality;
