@@ -12,6 +12,8 @@ let map = null;
 let markers = [];
 let currentLanguage = "es"; // Default language
 let player = null;
+let currentCity = ""; // Track current city
+let currentQuality = ""; // Track current quality
 
 // Default coordinates for each city
 const cityCoordinates = {
@@ -51,11 +53,16 @@ function initializeVideoPage() {
   const city = params.get("city");
   const quality = params.get("quality");
 
+  // Store the current city
+  currentCity = city || "madrid";
+
   // Override video quality with URL parameter if provided
   if (quality) {
     videoQuality = quality;
   }
 
+  // Store the current quality
+  currentQuality = videoQuality;
   window.videoQuality = videoQuality;
 
   let videoExtension = `_${videoQuality}.mp4`;
@@ -101,15 +108,11 @@ function initializeVideoPage() {
   // Set the page title
   document.getElementById("cityName").textContent = title;
 
-  // Redirect to URL with quality parameter
+  // Redirect to URL with quality parameter if not provided
   if (!params.get("quality")) {
     const newURL = `${window.location.pathname}?city=${city}&quality=${window.videoQuality}`;
     window.location.href = newURL;
   }
-
-  // Set selected quality in the selector
-  const qualitySelector = document.getElementById("quality");
-  qualitySelector.value = window.videoQuality;
 }
 
 // Initialize the map
@@ -259,7 +262,10 @@ async function loadVTTContent() {
   }
 
   try {
-    transcriptElement.textContent = `Intentando cargar: ${vttFile}`;
+    // Solo muestra el mensaje de carga si no hay explicaciones previas
+    if (explanationSegments.length === 0) {
+      transcriptElement.textContent = `Cargando explicaciones...`;
+    }
     console.log(`Intentando cargar archivo VTT desde: ${vttFile}`);
 
     const response = await fetch(vttFile);
@@ -332,10 +338,16 @@ async function loadVTTContent() {
       `Total de segmentos encontrados: ${explanationSegments.length}`
     );
 
-    // Show initial message
+    // Show initial message only if there are segments and player exists
     if (explanationSegments.length > 0) {
-      transcriptElement.innerHTML =
-        "<div>Reproduciendo el video para ver la explicación...</div>";
+      if (player) {
+        // Si el reproductor ya está inicializado, actualiza la explicación con el tiempo actual
+        updateExplanation(player.currentTime());
+      } else {
+        // Si el reproductor no está listo, muestra un mensaje inicial
+        transcriptElement.innerHTML =
+          "<div>Inicia el video para ver las explicaciones</div>";
+      }
       console.log("Listo para mostrar explicaciones durante la reproducción");
     } else {
       transcriptElement.textContent =
@@ -388,10 +400,13 @@ function updateExplanation(currentTime) {
   // Update the explanation text
   if (currentExplanation) {
     transcriptElement.innerHTML = `<div class="current-explanation">${currentExplanation.text}</div>`;
-  } else {
-    // If there's no explanation for this moment, show a message
+  } else if (explanationSegments.length > 0) {
+    // Si hay segmentos pero ninguno corresponde al tiempo actual
     transcriptElement.innerHTML =
-      "<div>No hay explicación para este momento del video</div>";
+      "<div>Avanza el video para ver las explicaciones</div>";
+  } else {
+    // Si no hay explicaciones cargadas
+    transcriptElement.innerHTML = "<div>No hay explicaciones disponibles</div>";
   }
 }
 
@@ -437,22 +452,20 @@ function updateMap(currentTime) {
 
 function setSubtitles(language) {
   console.log("setSubtitles language: " + language);
-  const video = document.getElementById("videoPlayer");
-  const tracks = video.textTracks;
+  if (!player) return;
 
-  // Obtener la ciudad de la URL actual del video
-  const city = videoURL.split("/")[1]; // e.g., "madrid" from "videos/madrid/videoMadrid_4k.mp4"
+  // Get all text tracks
+  const tracks = player.textTracks();
 
+  // Set the active subtitle track based on language
   for (let i = 0; i < tracks.length; i++) {
     const track = tracks[i];
-    let subtitleURL = `vtts/${city}/subtitulos${
-      city.charAt(0).toUpperCase() + city.slice(1)
-    }`;
-    if (track.language === language) {
-      track.mode = "showing";
-      track.src = `${subtitleURL}.vtt`;
-    } else {
-      track.mode = "hidden";
+    if (track.kind === "subtitles") {
+      if (track.language === language) {
+        track.mode = "showing";
+      } else {
+        track.mode = "disabled";
+      }
     }
   }
 }
@@ -460,33 +473,17 @@ function setSubtitles(language) {
 function setExplanations(language) {
   console.log("setExplanations language: " + language);
 
-  // Get the current language from the player if not specified
-  if (!language) {
-    const player = document.querySelector(".plyr").plyr;
-    const activeTracks = Array.from(document.querySelectorAll("track")).filter(
-      (track) => track.kind === "subtitles" && track.track.mode === "showing"
-    );
+  // Get the city from the URL
+  const params = new URLSearchParams(window.location.search);
+  const city = params.get("city");
 
-    if (activeTracks.length > 0) {
-      // Extract language from the track ID
-      const trackId = activeTracks[0].id;
-      language = trackId.split("_")[1];
-      console.log("Language detected from active track: " + language);
-    } else {
-      language = "es"; // Default fallback
-    }
-  }
-
-  // Obtener la ciudad de la URL actual del video
-  const city = videoURL.split("/")[1]; // e.g., "madrid" from "videos/madrid/videoMadrid_4k.mp4"
-
-  // Update the explanations track src
-  var track = document.getElementById("explanationsTrack");
+  if (!city) return;
 
   // Set the correct VTT file path based on language
   let explanationsVTT = `vtts/${city}/explicaciones${
     city.charAt(0).toUpperCase() + city.slice(1)
   }`;
+
   if (language === "es") {
     vttURL = `${explanationsVTT}.vtt`;
   } else if (language === "en") {
@@ -499,13 +496,24 @@ function setExplanations(language) {
 
   console.log("Setting explanations VTT URL to: " + vttURL);
 
-  // Update the track src
-  if (track) {
-    track.src = vttURL;
+  // Update the track for explanations metadata
+  if (player) {
+    const tracks = player.textTracks();
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      if (track.kind === "metadata" && track.label === "Explicaciones") {
+        track.src = vttURL;
+      }
+    }
   }
 
   // Reload the VTT content to update the displayed explanation
-  loadVTTContent();
+  loadVTTContent().then(() => {
+    // Actualizar inmediatamente la explicación con el tiempo actual del video
+    if (player && player.currentTime) {
+      updateExplanation(player.currentTime());
+    }
+  });
 }
 
 function changeLanguage(language) {
@@ -513,194 +521,271 @@ function changeLanguage(language) {
   currentLanguage = language;
   setSubtitles(language);
   setExplanations(language);
+
+  // Update language selector if it exists
+  const languageSelector = document.getElementById("languageSelector");
+  if (languageSelector) {
+    languageSelector.value = language;
+  }
 }
 
-function setVideoSource(quality) {
+// Function to change video quality
+function changeQuality(quality) {
+  console.log(`Changing quality to: ${quality}`);
+  if (quality === currentQuality) return;
+
+  currentQuality = quality;
+
+  // Save current playback state
+  const currentTime = player.currentTime();
+  const isPaused = player.paused();
+
+  // Update URL with new quality
   const params = new URLSearchParams(window.location.search);
-  const city = params.get("city");
+  params.set("quality", quality);
+  const newURL = `${window.location.pathname}?${params.toString()}`;
 
-  // Redirect to URL with new quality parameter
-  const newURL = `${window.location.pathname}?city=${city}&quality=${quality}`;
-  window.location.href = newURL;
+  // Update browser history without reloading the page
+  window.history.replaceState({}, "", newURL);
 
-  // Obtener la ciudad de la URL actual del video
-  let newVideoURL = `videos/${city}/video${
-    city.charAt(0).toUpperCase() + city.slice(1)
-  }_${window.videoQuality}.mp4`;
+  // Construct new video source URL
+  let cityCapitalized =
+    currentCity.charAt(0).toUpperCase() + currentCity.slice(1);
+  const newSrc = `videos/${currentCity}/video${cityCapitalized}_${quality}.mp4`;
 
-  // Guardar la posición actual del video
-  const currentTime = videoElement.currentTime;
-  const isPaused = videoElement.paused;
+  console.log(`New video source: ${newSrc}`);
 
-  // Actualizar la fuente del video
-  source.src = newVideoURL;
+  // Update video source
+  player.src({ type: "video/mp4", src: newSrc });
 
-  // Recargar el video
-  videoElement.load();
-
-  // Restaurar la posición y el estado de reproducción
-  videoElement.addEventListener("loadedmetadata", function onLoadedMetadata() {
-    videoElement.currentTime = currentTime;
+  // Restore playback state after source change
+  player.one("loadedmetadata", function () {
+    player.currentTime(currentTime);
     if (!isPaused) {
-      videoElement.play();
+      player.play();
     }
-    videoElement.removeEventListener("loadedmetadata", onLoadedMetadata);
-    console.log(`Video cambiado a calidad: ${quality}`);
+    console.log(
+      `Video quality changed to ${quality}, resuming at ${currentTime}s`
+    );
   });
 }
-// Initialize the video player with Plyr
-function initializeVideoPlayer() {
-  const videoElement = document.getElementById("videoPlayer");
 
-  // Configuración de Plyr
-  player = new Plyr(videoElement, {
-    controls: [
-      "play-large",
-      "play",
-      "progress",
-      "current-time",
-      "mute",
-      "volume",
-      "captions",
-      "settings",
-      "pip",
-      "airplay",
-      "fullscreen",
-    ],
+// Function to prepare sources array for video.js quality selector
+function getSourcesForSelectorPlugin() {
+  let cityCapitalized =
+    currentCity.charAt(0).toUpperCase() + currentCity.slice(1);
+
+  return [
+    {
+      src: `videos/${currentCity}/video${cityCapitalized}_4k.mp4`,
+      type: "video/mp4",
+      label: "4K",
+      selected: currentQuality === "4k",
+    },
+    {
+      src: `videos/${currentCity}/video${cityCapitalized}_1080p.mp4`,
+      type: "video/mp4",
+      label: "1080p",
+      selected: currentQuality === "1080p",
+    },
+    {
+      src: `videos/${currentCity}/video${cityCapitalized}_480p.mp4`,
+      type: "video/mp4",
+      label: "480p",
+      selected: currentQuality === "480p",
+    },
+  ];
+}
+
+// Initialize the video player with Video.js
+function initializeVideoPlayer() {
+  // Check if the silvermine-videojs-quality-selector plugin is loaded
+  try {
+    if (typeof videojs.registerPlugin !== "undefined") {
+      console.log("VideoJS plugin system is available");
+    } else {
+      console.error("VideoJS plugin system is not available");
+    }
+  } catch (error) {
+    console.error("Error checking VideoJS plugin system:", error);
+  }
+
+  // Initialize Video.js player
+  player = videojs("videoPlayer", {
+    controls: true,
+    autoplay: false,
+    preload: "auto",
+    fluid: true,
+    playbackRates: [0.5, 1, 1.5, 2],
+    controlBar: {
+      children: [
+        "playToggle",
+        "volumePanel",
+        "progressControl",
+        "currentTimeDisplay",
+        "timeDivider",
+        "durationDisplay",
+        "fullscreenToggle",
+        "subtitlesButton",
+      ],
+    },
+    plugins: {
+      qualitySelector: false,
+    },
   });
 
-  // Listen for captions language change
-  player.on("languagechange", function () {
-    console.log("Language changed in player");
-    const currentTrack = player.currentTrack;
-    if (currentTrack !== -1) {
-      const tracks = player.media.textTracks;
-      const activeTrack = tracks[currentTrack];
-      if (activeTrack) {
-        const language = activeTrack.language;
-        console.log("Active track language:", language);
-        // Update explanations with the new language
-        setExplanations(language);
+  // Add the explanations track if it doesn't exist
+  player.ready(function () {
+    console.log("Video.js player is ready");
+
+    // Set initial video source
+    player.src({
+      type: "video/mp4",
+      src: videoURL,
+    });
+
+    // Remove existing subtitle tracks
+    const existingTracks = player.remoteTextTracks();
+    const tracksToRemove = Array.from(existingTracks);
+    tracksToRemove.forEach((track) => {
+      player.removeRemoteTextTrack(track);
+    });
+
+    // Add subtitle tracks with correct sources
+    const cityCapitalized =
+      currentCity.charAt(0).toUpperCase() + currentCity.slice(1);
+
+    // Add Spanish subtitles
+    player.addRemoteTextTrack(
+      {
+        kind: "subtitles",
+        srclang: "es",
+        label: "Español",
+        src: `vtts/${currentCity}/subtitulos${cityCapitalized}.vtt`,
+        default: currentLanguage === "es",
+      },
+      false
+    );
+
+    // Add English subtitles
+    player.addRemoteTextTrack(
+      {
+        kind: "subtitles",
+        srclang: "en",
+        label: "English",
+        src: `vtts/${currentCity}/subtitulos${cityCapitalized}_en.vtt`,
+      },
+      false
+    );
+
+    // Add Catalan subtitles
+    player.addRemoteTextTrack(
+      {
+        kind: "subtitles",
+        srclang: "ca",
+        label: "Català",
+        src: `vtts/${currentCity}/subtitulos${cityCapitalized}_ca.vtt`,
+      },
+      false
+    );
+
+    // Set up sources with different qualities for the plugin
+    const sources = getSourcesForSelectorPlugin();
+    console.log("Quality sources:", sources);
+
+    // Set up initial source manually if needed
+    let initialSource = sources.find((source) => source.selected);
+    if (!initialSource) {
+      initialSource = sources[0];
+    }
+
+    // Manually add sources for quality selection
+    try {
+      // Try to use the plugin
+      if (player.controlBar.getChild("QualitySelector") === undefined) {
+        // Use the plugin manually
+        player.controlBar.addChild("QualitySelector", {});
+      }
+      player.updateSrc(sources);
+
+      // Add quality change event listener manually
+      player.on("qualityRequested", function (event, newSource) {
+        console.log("Quality requested:", newSource.label);
+        changeQuality(newSource.label.toLowerCase());
+      });
+    } catch (error) {
+      console.error("Error setting up quality selector:", error);
+
+      // Fallback: Create a manual dropdown for quality selection
+      createManualQualityControl(sources);
+    }
+
+    // Add metadata track for explanations if it doesn't exist
+    let hasExplanationTrack = false;
+    const textTracks = player.textTracks();
+
+    for (let i = 0; i < textTracks.length; i++) {
+      if (
+        textTracks[i].kind === "metadata" &&
+        textTracks[i].label === "Explicaciones"
+      ) {
+        hasExplanationTrack = true;
+        break;
       }
     }
-  });
 
-  // Obtener la ciudad de la URL actual del video
-  const city = videoURL.split("/")[1]; // e.g., "madrid" from "videos/madrid/videoMadrid_4k.mp4"
-  let subtitleURL = `vtts/${city}/subtitulos${
-    city.charAt(0).toUpperCase() + city.slice(1)
-  }`;
-
-  player.source = {
-    type: "video",
-    sources: [
-      {
-        src: videoURL,
-        type: "video/mp4",
-      },
-      {
-        src: videoURL.replace(".mp4", ".webm"),
-        type: "video/webm",
-      },
-    ],
-    tracks: [
-      {
-        kind: "subtitles",
-        label: "Español",
-        srclang: "es",
-        src: `${subtitleURL}.vtt`,
-        default: true,
-      },
-      {
-        kind: "subtitles",
-        label: "Inglés",
-        srclang: "en",
-        src: `${subtitleURL}_en.vtt`,
-      },
-      {
-        kind: "subtitles",
-        label: "Catalán",
-        srclang: "ca",
-        src: `${subtitleURL}_ca.vtt`,
-      },
-    ],
-  };
-
-  player.on("timeupdate", (event) => {
-    if (explanationSegments.length > 0) {
-      updateExplanation(event.detail.plyr.currentTime);
+    if (!hasExplanationTrack) {
+      player.addRemoteTextTrack(
+        {
+          kind: "metadata",
+          src: vttURL,
+          label: "Explicaciones",
+          default: true,
+        },
+        false
+      );
     }
-    updateMap(event.detail.plyr.currentTime);
-  });
 
-  player.on("loadeddata", () => {
-    console.log("Video cargado correctamente");
+    // Set initial subtitles language
+    setSubtitles(currentLanguage);
+
+    // Load explanations
     loadVTTContent();
   });
 
-  // Set initial subtitles language
-  setSubtitles(currentLanguage);
+  // Handle timeupdate event (equivalent to Plyr's timeupdate)
+  player.on("timeupdate", function () {
+    const currentTime = player.currentTime();
+    if (explanationSegments.length > 0) {
+      updateExplanation(currentTime);
+    }
+    updateMap(currentTime);
+  });
 
-  // Set initial video source
-  setVideoSource();
+  // Handle text track changes (for subtitles)
+  player.on("texttrackchange", function () {
+    const tracks = player.textTracks();
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      if (track.kind === "subtitles" && track.mode === "showing") {
+        console.log("Active subtitle track changed to:", track.language);
+        setExplanations(track.language);
+        break;
+      }
+    }
+  });
+}
+
+// Function to create a manual quality selector as a fallback
+function createManualQualityControl(sources) {
+  // Quality control is handled by our custom HD button
+  console.log("Using custom HD quality control");
 }
 
 // Initialize everything when the DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
-  // Create the explanations track element if it doesn't exist
-  if (!document.getElementById("explanationsTrack")) {
-    const videoPlayer = document.getElementById("videoPlayer");
-    const explanationsTrack = document.createElement("track");
-    explanationsTrack.id = "explanationsTrack";
-    explanationsTrack.kind = "metadata";
-    explanationsTrack.label = "Explicaciones";
-    explanationsTrack.src = "vtts/madrid/explicacionesMadrid.vtt";
-    videoPlayer.appendChild(explanationsTrack);
-  }
-
   initializeVideoPage();
   loadLocationsVTT();
   initMap();
   initializeVideoPlayer();
-
-  // Ocultar etiquetas de ubicación que aparecen en el video
-  // Esto necesita ejecutarse después de que el video se ha cargado
-  setTimeout(() => {
-    // Desactivar todas las pistas de texto que contengan ubicaciones
-    const tracks = document.querySelector("#videoPlayer").textTracks;
-    for (let i = 0; i < tracks.length; i++) {
-      const track = tracks[i];
-      // Si la pista contiene "[" (formato de ubicaciones), ocultarla
-      if (track.label.includes("[")) {
-        track.mode = "hidden";
-      }
-    }
-
-    // Forzar la eliminación de cualquier etiqueta de ubicación visible
-    const videoContainer = document.querySelector(".video-container");
-    const locationLabels = videoContainer.querySelectorAll(
-      'div[style*="position: absolute"]'
-    );
-    locationLabels.forEach((label) => label.remove());
-
-    console.log("Se han ocultado las etiquetas de ubicación");
-  }, 500);
-
-  // Add language selector
-  const languageSelector = document.createElement("select");
-  languageSelector.id = "languageSelector";
-  languageSelector.innerHTML = `
-    <option value="es">Español</option>
-    <option value="en">English</option>
-    <option value="ca">Català</option>
-  `;
-  languageSelector.addEventListener("change", (event) => {
-    changeLanguage(event.target.value);
-  });
-  document
-    .querySelector(".plyr")
-    .parentNode.insertBefore(
-      languageSelector,
-      document.querySelector(".plyr").nextSibling
-    );
 });

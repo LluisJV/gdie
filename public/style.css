@@ -3,7 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
 
 body {
@@ -34,7 +34,8 @@ body {
 
 /* Header amb imatge de fons */
 header {
-  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('images/Espana.jpg') center/cover no-repeat;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url("images/Espana.jpg") center/cover no-repeat;
   color: var(--text-light);
   padding: var(--spacing-lg) var(--spacing-sm);
   text-align: center;
@@ -112,7 +113,7 @@ header p {
 }
 
 .ciutat-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -141,10 +142,18 @@ header p {
 }
 
 /* Imatges específiques per a cada ciutat */
-.ciutat-btn.madrid { background-image: url('images/Madrid.jpg'); }
-.ciutat-btn.barcelona { background-image: url('images/Barcelona.jpg'); }
-.ciutat-btn.valencia { background-image: url('images/Valencia.jpg'); }
-.ciutat-btn.palma { background-image: url('images/Palma.jpg'); }
+.ciutat-btn.madrid {
+  background-image: url("images/Madrid.jpg");
+}
+.ciutat-btn.barcelona {
+  background-image: url("images/Barcelona.jpg");
+}
+.ciutat-btn.valencia {
+  background-image: url("images/Valencia.jpg");
+}
+.ciutat-btn.palma {
+  background-image: url("images/Palma.jpg");
+}
 
 /* Estils per a la secció del vídeo (modal) */
 .video-section {
@@ -154,7 +163,7 @@ header p {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   justify-content: center;
   align-items: center;
   z-index: 1000;
@@ -295,11 +304,11 @@ video::cue {
   .content-container {
     gap: var(--spacing-sm);
   }
-  
+
   .video-container {
     flex: 1 0 100%;
   }
-  
+
   .map-container {
     flex: 1 0 100%;
     height: 450px;
@@ -307,26 +316,25 @@ video::cue {
 }
 
 /* Responsive design */
-
 @media (max-width: 768px) {
   :root {
     --container-padding: 0 1rem;
   }
-  
+
   header {
     padding: var(--spacing-md) var(--spacing-sm);
   }
-  
+
   .ciutats-grid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: var(--spacing-sm);
     padding: 0 var(--spacing-sm);
   }
-  
+
   .ciutat-btn {
     height: 250px;
   }
-  
+
   .content-container {
     width: 100%;
     padding: 0 var(--spacing-sm);
@@ -337,20 +345,57 @@ video::cue {
   .ciutats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .ciutat-btn {
     height: 200px;
   }
-  
+
   .content-container {
     gap: var(--spacing-xs);
   }
-  
+
   .map-container {
     height: 300px;
   }
-  
+
   .transcript-container {
     padding: var(--spacing-xs);
   }
+}
+
+/* Ensure video player is responsive */
+.video-js {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16/9;
+}
+
+.vjs-fluid {
+  padding-top: 56.25% !important; /* 16:9 aspect ratio */
+}
+
+/* Fix for video height issues */
+.vjs-tech {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Fix for the language selector position */
+.language-selector-container {
+  margin: 0 auto;
+  max-width: 1600px;
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+#languageSelector {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  background-color: white;
 }

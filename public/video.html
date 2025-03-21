@@ -10,8 +10,107 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/ol@v7.1.0/ol.css"
     />
-    <!-- Plyr CSS -->
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.2/plyr.css" />
+    <!-- Video.js CSS -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <style>
+      /* Custom styles for quality menu */
+      .vjs-quality-menu-wrapper {
+        display: flex;
+        align-items: center;
+        height: 100%;
+      }
+
+      .vjs-quality-menu-button {
+        cursor: pointer;
+        background-color: transparent;
+        color: rgba(255, 255, 255, 0.8);
+        border: none;
+        padding: 0;
+        width: 3em;
+        height: 3em;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .vjs-quality-menu-button:hover {
+        color: #fff;
+      }
+
+      .vjs-quality-menu-button:before {
+        content: "HD";
+        font-size: 1.1em;
+        font-weight: bold;
+        line-height: 1;
+      }
+
+      .vjs-quality-menu {
+        position: absolute;
+        bottom: 40px;
+        right: 0;
+        background-color: rgba(28, 28, 28, 0.9);
+        border-radius: 4px;
+        color: #fff;
+        overflow: hidden;
+        min-width: 90px;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+        margin-bottom: 0;
+        transform-origin: bottom right;
+        transform: scale(0.9);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+      }
+
+      .vjs-quality-menu.showing {
+        transform: scale(1);
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .vjs-quality-menu-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .vjs-quality-menu-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      .vjs-quality-menu-item.selected {
+        color: #fff;
+        font-weight: bold;
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      /* Fix for video player sizing */
+      .video-container {
+        position: relative;
+        overflow: hidden;
+      }
+      .video-js {
+        position: relative;
+        width: 100% !important;
+        height: 0 !important;
+        padding-top: 56.25% !important; /* 16:9 aspect ratio */
+      }
+      .video-js .vjs-tech {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
   </head>
   <body>
     <header>
@@ -19,64 +118,138 @@
     </header>
     <a class="back-link" href="index.html">← Volver a la página principal</a>
 
-    <div class="quality-selector-container">
-      <label for="quality">Calidad:</label>
-      <select
-        name="quality"
-        id="quality"
-        onchange="setVideoSource(this.value)"
-      >
-        <option value="4k">4K</option>
-        <option value="1080p">1080p</option>
-        <option value="480p">480p</option>
-      </select>
-    </div>
-
     <div class="content-container">
-      <!-- Video container with player -->
+      <!-- Video container with Video.js player -->
       <div class="video-container">
-        <div data-plyr-provider="html5" class="js-player plyr">
-          <video id="videoPlayer" controls crossorigin="anonymous">
-            <source src="videos/madrid/videoMadrid_4k.mp4" type="video/mp4" />
-            <track
-              id="subtitlesTrack_es"
-              kind="subtitles"
-              label="Español"
-              srclang="es"
-              src="vtts/madrid/subtitulosMadrid.vtt"
-            />
-            <track
-              id="subtitlesTrack_en"
-              kind="subtitles"
-              label="English"
-              srclang="en"
-              src="vtts/madrid/subtitulosMadrid_en.vtt"
-            />
-            <track
-              id="subtitlesTrack_ca"
-              kind="subtitles"
-              label="Català"
-              srclang="ca"
-              src="vtts/madrid/subtitulosMadrid_ca.vtt"
-            />
-            Tu navegador no soporta la reproducción de video.
-          </video>
-        </div>
+        <video
+          id="videoPlayer"
+          class="video-js vjs-default-skin vjs-big-play-centered"
+          controls
+          preload="auto"
+          crossorigin="anonymous"
+          data-setup="{}"
+        >
+          Tu navegador no soporta la reproducción de video.
+        </video>
       </div>
       <div class="map-container">
         <div id="map"></div>
       </div>
       <div class="transcript-container">
         <div class="explanation-title">Explicación:</div>
-        <div id="transcriptText" class="current-explanation">Cargando explicación...</div>
+        <div id="transcriptText" class="current-explanation">
+          Cargando explicación...
+        </div>
       </div>
     </div>
 
-    <!-- Plyr JavaScript -->
-    <script src="https://cdn.plyr.io/3.7.2/plyr.js"></script>
+    <!-- Video.js JavaScript -->
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <!-- OpenLayers JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/ol@v7.1.0/dist/ol.js"></script>
     <!-- Custom JavaScript -->
     <script src="js/video.js"></script>
+
+    <!-- Inline script to add quality selector if plugin doesn't load properly -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // This runs after video.js is initialized
+        setTimeout(function () {
+          const player = videojs.getPlayer("videoPlayer");
+          if (
+            player &&
+            player.controlBar &&
+            !player.controlBar.getChild("QualitySelector")
+          ) {
+            console.log("Adding quality menu manually");
+            createQualityMenu();
+          }
+        }, 1000);
+
+        function createQualityMenu() {
+          const player = videojs.getPlayer("videoPlayer");
+          if (!player) return;
+
+          const qualities = [
+            { label: "4K", value: "4k" },
+            { label: "1080p", value: "1080p" },
+            { label: "480p", value: "480p" },
+          ];
+
+          // Create quality menu container
+          const menuWrapper = document.createElement("div");
+          menuWrapper.className = "vjs-quality-menu-wrapper";
+
+          // Create button
+          const button = document.createElement("button");
+          button.className =
+            "vjs-quality-menu-button vjs-menu-button vjs-control";
+          button.innerHTML = "";
+          button.setAttribute("title", "Calidad de video");
+
+          // Create menu
+          const menu = document.createElement("div");
+          menu.className = "vjs-quality-menu";
+
+          // Add menu items
+          qualities.forEach((quality) => {
+            const menuItem = document.createElement("div");
+            menuItem.className = "vjs-quality-menu-item";
+            if (window.videoQuality === quality.value) {
+              menuItem.className += " selected";
+            }
+            menuItem.textContent = quality.label;
+            menuItem.dataset.quality = quality.value;
+            menuItem.addEventListener("click", function (e) {
+              e.stopPropagation();
+              const qualityValue = this.dataset.quality;
+              // Call the quality change function
+              if (typeof changeQuality === "function") {
+                changeQuality(qualityValue);
+              }
+              // Update selected state
+              document
+                .querySelectorAll(".vjs-quality-menu-item")
+                .forEach((item) => {
+                  item.classList.remove("selected");
+                });
+              this.classList.add("selected");
+              toggleMenu(false);
+            });
+            menu.appendChild(menuItem);
+          });
+
+          // Toggle menu function
+          function toggleMenu(show) {
+            if (show === undefined) {
+              menu.classList.toggle("showing");
+            } else {
+              menu.classList[show ? "add" : "remove"]("showing");
+            }
+          }
+
+          // Toggle menu on button click
+          button.addEventListener("click", function (e) {
+            e.stopPropagation();
+            toggleMenu();
+          });
+
+          // Hide menu when clicking outside
+          document.addEventListener("click", function () {
+            toggleMenu(false);
+          });
+
+          // Add elements to DOM
+          menuWrapper.appendChild(button);
+          menuWrapper.appendChild(menu);
+
+          // Add to player control bar
+          const fullscreenButton = player.controlBar
+            .getChild("fullscreenToggle")
+            .el();
+          player.controlBar.el().insertBefore(menuWrapper, fullscreenButton);
+        }
+      });
+    </script>
   </body>
 </html>
