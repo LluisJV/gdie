@@ -399,3 +399,200 @@ video::cue {
   font-size: 16px;
   background-color: white;
 }
+
+/* TTS toggle button styles */
+.tts-switch-container {
+  display: flex;
+  align-items: center;
+  margin: var(--spacing-sm) var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.tts-switch-label {
+  margin-right: 8px;
+  font-weight: 500;
+  color: var(--secondary-color);
+}
+
+.tts-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.tts-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tts-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+
+.tts-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .tts-slider {
+  background-color: var(--primary-color);
+}
+
+input:focus + .tts-slider {
+  box-shadow: 0 0 1px var(--primary-color);
+}
+
+input:checked + .tts-slider:before {
+  transform: translateX(24px);
+}
+
+/* Responsive design for TTS toggle */
+@media (max-width: 480px) {
+  .tts-switch-container {
+    margin: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .tts-switch-label {
+    font-size: 14px;
+  }
+
+  .tts-switch {
+    width: 40px;
+    height: 20px;
+  }
+
+  .tts-slider:before {
+    height: 14px;
+    width: 14px;
+  }
+
+  input:checked + .tts-slider:before {
+    transform: translateX(20px);
+  }
+}
+
+/* TTS Button styles for video.js player */
+.vjs-tts-button {
+  width: 4em !important;
+  height: 3em !important;
+  margin-left: 0;
+  margin-right: 0;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-direction: column;
+  top: 0;
+}
+
+.vjs-tts-button .vjs-icon-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  top: 0;
+}
+
+.vjs-tts-button svg {
+  width: 1.8em;
+  height: 1.8em;
+  fill: rgba(255, 255, 255, 0.8);
+  transition: fill 0.2s ease;
+}
+
+.vjs-tts-button:hover svg {
+  fill: white;
+}
+
+.vjs-tts-button .tts-indicator {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.vjs-tts-enabled .tts-indicator {
+  opacity: 1;
+  fill: #2196f3;
+}
+
+.vjs-tts-button.vjs-tts-enabled svg path {
+  fill: #ffffff;
+}
+
+.vjs-tts-button.vjs-tts-enabled {
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+.vjs-tts-button.vjs-tts-enabled:hover {
+  background-color: rgba(33, 150, 243, 0.4);
+}
+
+/* Estilos específicos para cuando está junto al botón HD */
+#ttsButtonNextToQuality {
+  margin-left: 0.5em !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#ttsButtonNextToQuality .vjs-icon-placeholder {
+  margin-top: 0 !important;
+  position: relative;
+  top: -0.15em;
+}
+
+.vjs-tts-button.next-to-quality:before {
+  content: "TTS";
+  font-size: 0.7em;
+  font-weight: bold;
+  position: absolute;
+  bottom: 0.35em;
+  letter-spacing: 0.05em;
+  text-align: center;
+  width: 100%;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.vjs-tts-button.next-to-quality:hover:before {
+  color: white;
+}
+
+.vjs-tts-button.next-to-quality.vjs-tts-enabled:before {
+  color: #2196f3;
+}
+
+.vjs-tts-button.next-to-quality svg {
+  transform: translateY(0);
+  width: 1.7em;
+  height: 1.7em;
+}
+
+/* Mejorar visibilidad cuando hay botones juntos */
+.vjs-quality-menu-wrapper + .vjs-tts-button:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}

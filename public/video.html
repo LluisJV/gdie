@@ -163,6 +163,11 @@
           ) {
             console.log("Adding quality menu manually");
             createQualityMenu();
+
+            // Añadir el botón TTS junto al botón de calidad después de crear el menú de calidad
+            setTimeout(function () {
+              addTTSButtonNextToQuality();
+            }, 500);
           }
         }, 1000);
 
@@ -248,6 +253,103 @@
             .getChild("fullscreenToggle")
             .el();
           player.controlBar.el().insertBefore(menuWrapper, fullscreenButton);
+        }
+
+        // Function to add TTS button next to quality button
+        function addTTSButtonNextToQuality() {
+          const player = videojs.getPlayer("videoPlayer");
+          if (!player || !player.controlBar) return;
+
+          // Buscar el botón de calidad
+          let qualityMenuWrapper = document.querySelector(
+            ".vjs-quality-menu-wrapper"
+          );
+
+          // Si no existe, busca por id como fallback
+          if (!qualityMenuWrapper) {
+            qualityMenuWrapper = document.getElementById("qualityMenuWrapper");
+          }
+
+          // Comprobar si existe el botón TTS en la barra de controles
+          let ttsButton = player.controlBar.getChild("TTSButton");
+
+          // Si ya existe, lo eliminamos para reposicionarlo
+          if (ttsButton) {
+            player.controlBar.removeChild(ttsButton);
+          }
+
+          // Creamos un nuevo botón TTS
+          ttsButton = player.controlBar.addChild("TTSButton", {});
+
+          if (qualityMenuWrapper && ttsButton && ttsButton.el()) {
+            // Insertar el botón TTS después del botón de calidad
+            qualityMenuWrapper.parentNode.insertBefore(
+              ttsButton.el(),
+              qualityMenuWrapper.nextSibling
+            );
+
+            // Añadir clase para estilo especial cuando está junto al botón de calidad
+            ttsButton.addClass("next-to-quality");
+
+            // Asegurarnos de que tenga la posición correcta en el DOM
+            ttsButton.el().id = "ttsButtonNextToQuality";
+            ttsButton.el().style.position = "relative";
+            ttsButton.el().style.display = "flex";
+            ttsButton.el().style.alignItems = "center";
+            ttsButton.el().style.justifyContent = "center";
+            ttsButton.el().style.height = "3em";
+            ttsButton.el().style.width = "4em";
+
+            // Alinear verticalmente el icono y el texto TTS
+            const iconPlaceholder = ttsButton
+              .el()
+              .querySelector(".vjs-icon-placeholder");
+            if (iconPlaceholder) {
+              iconPlaceholder.style.display = "flex";
+              iconPlaceholder.style.alignItems = "center";
+              iconPlaceholder.style.justifyContent = "center";
+              iconPlaceholder.style.height = "100%";
+              iconPlaceholder.style.marginTop = "0";
+            }
+
+            // Ajustar el SVG para que esté centrado
+            const svg = ttsButton.el().querySelector("svg");
+            if (svg) {
+              svg.style.transform = "translateY(0)";
+              svg.style.position = "relative";
+              svg.style.top = "0";
+            }
+
+            // Forzar refresco visual del botón
+            setTimeout(() => {
+              ttsButton.el().style.opacity = "0.99";
+              setTimeout(() => {
+                ttsButton.el().style.opacity = "1";
+              }, 50);
+            }, 0);
+
+            // Ajustar el título según el estado actual
+            if (window.ttsEnabled) {
+              ttsButton
+                .el()
+                .setAttribute(
+                  "title",
+                  "Desactivar lectura de subtítulos (TTS)"
+                );
+            } else {
+              ttsButton
+                .el()
+                .setAttribute("title", "Activar lectura de subtítulos (TTS)");
+            }
+
+            console.log(
+              "TTS button successfully positioned next to quality button"
+            );
+          } else {
+            console.error(
+              "Could not find quality button or TTS button to position"
+            );
+          }
         }
       });
     </script>
