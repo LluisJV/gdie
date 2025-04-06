@@ -172,16 +172,32 @@ header p {
 /* Video page styles */
 .back-link {
   display: inline-block;
-  margin: var(--spacing-sm) var(--spacing-lg);
+  margin: 10px 0 20px 20px;
+  color: #333;
   text-decoration: none;
-  color: var(--primary-color);
   font-weight: bold;
-  transition: color 0.2s ease;
 }
 
-.back-link:hover {
-  color: #005a80;
-  text-decoration: underline;
+.control-links {
+  display: flex;
+  padding: 0 20px;
+}
+
+.back-link, .remote-link {
+  display: inline-block;
+  margin: 10px 20px 20px 0;
+  color: #333;
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+.back-link:hover, .remote-link:hover {
+  color: #3399CC;
+}
+
+.remote-link {
+  color: #3399CC;
 }
 
 /* Ocultar las etiquetas de ubicación que aparecen superpuestas en el video */

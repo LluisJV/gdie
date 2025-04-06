@@ -1,0 +1,17 @@
+{
+    "name": "video-remote-websocket-server",
+    "version": "1.0.0",
+    "description": "Servidor WebSocket para control remoto de video",
+    "main": "server.js",
+    "type": "module",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node server.js"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "ws": "^8.16.0",
+        "dotenv": "^16.4.5"
+    }
+}
