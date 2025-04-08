@@ -110,6 +110,67 @@
         width: 100%;
         height: 100%;
       }
+
+      /* Estilos para el recuadro del cuestionario */
+      .quiz-container {
+        margin-top: 20px;
+        padding: 20px;
+        border: 2px solid #007bff;
+        border-radius: 10px;
+        background-color: #f9f9f9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .quiz-container h2 {
+        text-align: center;
+        color: #007bff;
+      }
+
+      #quiz p {
+        font-size: 16px;
+        margin: 10px 0;
+      }
+
+      .quiz-option {
+        display: block;
+        margin: 10px 0;
+        padding: 10px;
+        font-size: 14px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-align: center;
+        transition: background-color 0.3s ease;
+      }
+
+      .quiz-option:hover {
+        background-color: #0056b3;
+      }
+
+      #startQuizBtn {
+        display: block;
+        margin: 20px auto;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      #startQuizBtn:hover {
+        background-color: #0056b3;
+      }
+
+      #result {
+        text-align: center;
+        font-size: 18px;
+        color: #333;
+      }
     </style>
   </head>
   <body>
@@ -144,6 +205,14 @@
         <div class="explanation-title">Explicación:</div>
         <div id="transcriptText" class="current-explanation">
           Cargando explicación...
+        </div>
+        <div class="quiz-container">
+          <h2>🧠 Cuestionario Online - ¿Cuál es tu ciudad ideal en España?</h2>
+          <div id="quiz">
+            <!-- Aquí se mostrarán las preguntas y opciones -->
+          </div>
+          <button id="startQuizBtn" type="button">Iniciar cuestionario</button>
+          <div id="result" style="margin-top: 1em; font-weight: bold;"></div>
         </div>
       </div>
     </div>
@@ -361,6 +430,78 @@
             );
           }
         }
+      });
+    </script>
+
+    <script>
+      function iniciarCuestionario() {
+        const quizDiv = document.getElementById("quiz");
+        const resultDiv = document.getElementById("result");
+        quizDiv.innerHTML = ""; // Limpiar contenido anterior
+        resultDiv.textContent = ""; // Limpiar resultado anterior
+
+        // Array de preguntas con opciones
+        const preguntas = [
+          {
+            pregunta: "¿Prefieres vivir cerca del mar o en la montaña?",
+            opciones: ["Mar", "Montaña"],
+          },
+          {
+            pregunta: "¿Te gusta el clima cálido o frío?",
+            opciones: ["Cálido", "Frío"],
+          },
+          {
+            pregunta: "¿Prefieres una ciudad grande o pequeña?",
+            opciones: ["Grande", "Pequeña"],
+          },
+          {
+            pregunta: "¿Te interesa más la cultura, la fiesta o la naturaleza?",
+            opciones: ["Cultura", "Fiesta", "Naturaleza"],
+          },
+          {
+            pregunta: "¿Trabajas en tecnología, turismo, arte o agricultura?",
+            opciones: ["Tecnología", "Turismo", "Arte", "Agricultura"],
+          },
+        ];
+
+        const respuestas = {};
+
+        // Función recursiva para mostrar cada pregunta
+        function mostrarPregunta(i) {
+          if (i >= preguntas.length) {
+            // Una vez respondidas todas las preguntas, se genera el JSON
+            const jsonRespuestas = JSON.stringify(respuestas, null, 2);
+            resultDiv.textContent = "Respuestas enviadas: " + jsonRespuestas;
+
+            // Aquí puedes enviar el JSON a un modelo de IA o servidor
+            console.log("JSON generado:", jsonRespuestas);
+            return;
+          }
+
+          const preguntaActual = preguntas[i];
+          quizDiv.innerHTML = `<p><strong>${preguntaActual.pregunta}</strong></p>`;
+
+          // Crear botones para las opciones
+          preguntaActual.opciones.forEach((opcion) => {
+            const button = document.createElement("button");
+            button.textContent = opcion;
+            button.className = "quiz-option";
+            button.addEventListener("click", () => {
+              respuestas[preguntaActual.pregunta] = opcion;
+              mostrarPregunta(i + 1);
+            });
+            quizDiv.appendChild(button);
+          });
+        }
+
+        mostrarPregunta(0);
+      }
+
+      // Adjuntar el evento al botón de inicio
+      document.getElementById("startQuizBtn").addEventListener("click", function () {
+        // Ocultar el botón una vez iniciado el cuestionario
+        this.style.display = "none";
+        iniciarCuestionario();
       });
     </script>
   </body>

@@ -3,93 +3,98 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Control Remoto de Video</title>
+    <title>Control Remoto de Video - Mando TV</title>
     <style>
+      /* Estilos generales */
       body {
-        font-family: Arial, sans-serif;
-        text-align: center;
+        background: radial-gradient(circle, #444 0%, #111 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
         padding: 20px;
-        background-color: #f2f2f2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
       }
-      .container {
-        max-width: 600px;
-        margin: 0 auto;
-        background-color: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      
+      /* Contenedor estilo mando */
+      .remote-container {
+        background: linear-gradient(145deg, #2b2b2b, #1a1a1a);
+        border-radius: 30px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        padding: 30px 20px;
+        width: 350px;
+        color: #eee;
+        text-align: center;
       }
-      h1 {
-        color: #333;
+      
+      .remote-title {
+        font-size: 24px;
+        margin-bottom: 20px;
+        letter-spacing: 1px;
       }
+      
+      /* Estado de conexión */
       .connection-status {
-        margin: 20px 0;
-        padding: 10px;
-        border-radius: 5px;
+        margin-bottom: 20px;
+        padding: 8px;
+        border-radius: 20px;
+        font-size: 14px;
         font-weight: bold;
       }
-      .connected {
-        background-color: #d4edda;
-        color: #155724;
-      }
-      .disconnected {
-        background-color: #f8d7da;
-        color: #721c24;
-      }
-      .connecting {
-        background-color: #fff3cd;
-        color: #856404;
-      }
-      .controls {
+      .connected { background-color: #2ecc71; }
+      .disconnected { background-color: #e74c3c; }
+      .connecting { background-color: #f1c40f; }
+      
+      /* Botones estilo mando */
+      .control-buttons {
         display: flex;
         flex-direction: column;
         gap: 15px;
-        margin-top: 30px;
       }
+      
       button {
-        padding: 20px;
-        margin: 0 auto;
-        width: 80%;
-        max-width: 300px;
-        font-size: 18px;
-        border-radius: 10px;
+        width: 100%;
+        padding: 15px;
         border: none;
-        background-color: #3399cc;
-        color: white;
-        cursor: pointer;
+        border-radius: 20px;
+        font-size: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background-color 0.3s;
+        background: linear-gradient(145deg, #555, #333);
+        color: #fff;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.2s;
       }
-      button:hover {
-        background-color: #297aa3;
-      }
+      
       button:active {
-        transform: scale(0.98);
+        transform: scale(0.97);
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
       }
-      .button-icon {
-        font-size: 24px;
+      
+      button .button-icon {
         margin-right: 10px;
+        font-size: 22px;
       }
+      
+      /* Controles de volumen en línea */
       .volume-controls {
         display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
+        gap: 15px;
       }
-      .volume-button {
-        width: 45%;
+      
+      .volume-controls button {
+        flex: 1;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Control Remoto</h1>
-
-      <div class="connection-status disconnected" id="status">No conectado</div>
-
-      <div class="controls">
+    <div class="remote-container">
+      <div class="remote-title">Control Remoto</div>
+      <div id="status" class="connection-status disconnected">No conectado</div>
+      
+      <div class="control-buttons">
         <button id="playBtn">
           <span class="button-icon">▶️</span> Reproducir
         </button>
@@ -102,28 +107,26 @@
         <button id="forwardBtn">
           <span class="button-icon">⏩</span> Adelantar 10s
         </button>
-
         <div class="volume-controls">
-          <button id="volumeDownBtn" class="volume-button">
+          <button id="volumeDownBtn">
             <span class="button-icon">🔉</span> Volumen -
           </button>
-          <button id="volumeUpBtn" class="volume-button">
+          <button id="volumeUpBtn">
             <span class="button-icon">🔊</span> Volumen +
           </button>
         </div>
       </div>
     </div>
-
+    
     <script>
       // Configuración para conectarse al WebSocket
       const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      // URL del servidor WebSocket externo (cambiar según donde esté alojado)
       const wsServerUrl = "ws://localhost:8080"; // Cambiar a la IP o dominio donde esté el servidor
       let socket;
       let reconnectAttempts = 0;
       const maxReconnectAttempts = 5;
       const reconnectDelay = 3000;
-
+    
       // Elementos del DOM
       const statusElement = document.getElementById("status");
       const playBtn = document.getElementById("playBtn");
@@ -132,35 +135,30 @@
       const forwardBtn = document.getElementById("forwardBtn");
       const volumeUpBtn = document.getElementById("volumeUpBtn");
       const volumeDownBtn = document.getElementById("volumeDownBtn");
-
+    
       // Función para conectar al WebSocket
       function connectWebSocket() {
         updateConnectionStatus("connecting", "Conectando...");
-
+    
         socket = new WebSocket(wsServerUrl);
-
+    
         socket.onopen = () => {
           updateConnectionStatus("connected", "Conectado");
           reconnectAttempts = 0;
           console.log("Conectado al servidor WebSocket");
         };
-
+    
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
             console.log("Mensaje recibido:", data);
-
-            // Mostrar confirmaciones de comandos
+    
             if (data.type === "ack") {
               console.log(`Comando ${data.action} entregado correctamente`);
             }
-
-            // Mostrar mensajes del sistema
             if (data.type === "system") {
               console.log(`Mensaje del sistema: ${data.message}`);
             }
-
-            // Mostrar errores
             if (data.type === "error") {
               console.error(`Error: ${data.message}`);
               updateConnectionStatus("connected", `Error: ${data.message}`);
@@ -172,39 +170,32 @@
             console.error("Error al procesar mensaje:", err);
           }
         };
-
+    
         socket.onclose = () => {
           updateConnectionStatus("disconnected", "Desconectado");
           console.log("Desconectado del servidor WebSocket");
-
-          // Intentar reconectar
+    
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             setTimeout(connectWebSocket, reconnectDelay);
-            updateConnectionStatus(
-              "connecting",
-              `Reconectando (intento ${reconnectAttempts})...`
-            );
+            updateConnectionStatus("connecting", `Reconectando (intento ${reconnectAttempts})...`);
           } else {
-            updateConnectionStatus(
-              "disconnected",
-              "No se pudo conectar. Refresca la página para intentar de nuevo."
-            );
+            updateConnectionStatus("disconnected", "No se pudo conectar. Refresca la página para intentar de nuevo.");
           }
         };
-
+    
         socket.onerror = (error) => {
           console.error("Error WebSocket:", error);
         };
       }
-
-      // Actualizar el estado de la conexión en la UI
+    
+      // Actualiza el estado de la conexión en la UI
       function updateConnectionStatus(state, message) {
         statusElement.textContent = message;
         statusElement.className = `connection-status ${state}`;
       }
-
-      // Enviar un comando al servidor
+    
+      // Envía comandos al servidor
       function sendCommand(action, value = null) {
         if (socket && socket.readyState === WebSocket.OPEN) {
           const command = { action };
@@ -215,25 +206,20 @@
           console.log("Comando enviado:", command);
         } else {
           console.warn("No hay conexión para enviar comandos");
-          updateConnectionStatus(
-            "disconnected",
-            "No hay conexión. Reconectando..."
-          );
+          updateConnectionStatus("disconnected", "No hay conexión. Reconectando...");
           connectWebSocket();
         }
       }
-
-      // Configurar event listeners para los botones
+    
+      // Configuración de eventos para los botones
       playBtn.addEventListener("click", () => sendCommand("play"));
       pauseBtn.addEventListener("click", () => sendCommand("pause"));
       rewindBtn.addEventListener("click", () => sendCommand("seek", -10));
       forwardBtn.addEventListener("click", () => sendCommand("seek", 10));
       volumeUpBtn.addEventListener("click", () => sendCommand("volume", 0.1));
-      volumeDownBtn.addEventListener("click", () =>
-        sendCommand("volume", -0.1)
-      );
-
-      // Iniciar la conexión cuando la página cargue
+      volumeDownBtn.addEventListener("click", () => sendCommand("volume", -0.1));
+    
+      // Inicia la conexión cuando la página cargue
       document.addEventListener("DOMContentLoaded", connectWebSocket);
     </script>
   </body>
