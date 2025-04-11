@@ -106,7 +106,7 @@ function updateMap(currentTime) {
 // WebSocket Remote Control functionality
 function initRemoteControl() {
   // URL del servidor WebSocket externo (cambiar según donde esté alojado)
-  const wsServerUrl = "ws://localhost:8080"; // Cambiar a la IP o dominio donde esté el servidor
+  const wsServerUrl = "ws://localhost:80"; // Cambiar a la IP o dominio donde esté el servidor
   let socket;
 
   // Intentar establecer la conexión WebSocket
