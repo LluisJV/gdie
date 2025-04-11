@@ -1,7 +1,9 @@
+
 //express test code
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import http from "http";
+
 
 const app = express();
 const port = process.env.PORT || 80; // Usar el puerto de la variable de entorno o 80 por defecto
@@ -17,8 +19,7 @@ app.use((req, res, next) => {
 // Crear servidor HTTP usando la app de Express
 const server = http.createServer(app);
 
-//pone los archivos estaticos en la carpeta public
-//para acceder a index.html -> http://localhost/index.html
+// Poner los archivos estáticos en la carpeta public
 app.use(express.static("public"));
 
 // Configurar servidor WebSocket
@@ -51,6 +52,12 @@ wss.on("connection", (ws, req) => {
     })
   );
 
+  // Enviar mensaje de bienvenida
+  ws.send(JSON.stringify({
+    type: "system",
+    message: "Conectado al servidor de control remoto",
+  }));
+
   ws.on("message", (message) => {
     try {
       const data = JSON.parse(message);
@@ -63,6 +70,7 @@ wss.on("connection", (ws, req) => {
         case "seek":
         case "volume":
           // Enviar confirmación al cliente
+
           ws.send(
             JSON.stringify({
               type: "ack",
@@ -81,11 +89,13 @@ wss.on("connection", (ws, req) => {
                   value: data.value,
                 })
               );
+
             }
           });
           break;
 
         default:
+          
           ws.send(
             JSON.stringify({
               type: "error",
@@ -101,6 +111,7 @@ wss.on("connection", (ws, req) => {
           message: "Error al procesar el comando",
         })
       );
+
     }
   });
 
@@ -124,10 +135,4 @@ const interval = setInterval(() => {
 
 wss.on("close", () => {
   clearInterval(interval);
-});
 
-// Iniciar el servidor HTTP y WebSocket
-server.listen(port, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${port}`);
-  console.log(`Servidor WebSocket ejecutándose en ws://localhost:${port}`);
-});

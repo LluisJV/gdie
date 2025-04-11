@@ -153,6 +153,7 @@
 
     <script>
       // Configuración para conectarse al WebSocket
+
       function getWebSocketUrl() {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = window.location.host;
@@ -160,6 +161,7 @@
       }
 
       let wsServerUrl = getWebSocketUrl();
+
       let socket;
       let reconnectAttempts = 0;
       const maxReconnectAttempts = 5;
