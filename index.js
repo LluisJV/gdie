@@ -1,9 +1,7 @@
-
 //express test code
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import http from "http";
-
 
 const app = express();
 const port = process.env.PORT || 80; // Usar el puerto de la variable de entorno o 80 por defecto
@@ -53,10 +51,12 @@ wss.on("connection", (ws, req) => {
   );
 
   // Enviar mensaje de bienvenida
-  ws.send(JSON.stringify({
-    type: "system",
-    message: "Conectado al servidor de control remoto",
-  }));
+  ws.send(
+    JSON.stringify({
+      type: "system",
+      message: "Conectado al servidor de control remoto",
+    })
+  );
 
   ws.on("message", (message) => {
     try {
@@ -89,13 +89,11 @@ wss.on("connection", (ws, req) => {
                   value: data.value,
                 })
               );
-
             }
           });
           break;
 
         default:
-          
           ws.send(
             JSON.stringify({
               type: "error",
@@ -111,7 +109,6 @@ wss.on("connection", (ws, req) => {
           message: "Error al procesar el comando",
         })
       );
-
     }
   });
 
@@ -135,4 +132,9 @@ const interval = setInterval(() => {
 
 wss.on("close", () => {
   clearInterval(interval);
+});
 
+// Iniciar el servidor
+server.listen(port, () => {
+  console.log(`Servidor escuchando en el puerto ${port}`);
+});
