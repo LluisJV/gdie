@@ -63,6 +63,19 @@ wss.on("connection", (ws, req) => {
       const data = JSON.parse(message);
       console.log("Mensaje recibido:", data);
 
+      // Manejar mensajes de registro de cliente
+      if (data.type === "register") {
+        console.log(`Cliente registrado como: ${data.client}`);
+        ws.clientType = data.client;
+        ws.send(
+          JSON.stringify({
+            type: "system",
+            message: `Registrado como ${data.client}`,
+          })
+        );
+        return;
+      }
+
       // Procesar comandos del control remoto
       switch (data.action) {
         case "play":
@@ -70,7 +83,6 @@ wss.on("connection", (ws, req) => {
         case "seek":
         case "volume":
           // Enviar confirmación al cliente
-
           ws.send(
             JSON.stringify({
               type: "ack",
@@ -80,6 +92,7 @@ wss.on("connection", (ws, req) => {
           );
 
           // Reenviar el comando a todos los demás clientes
+          let clientsNotified = 0;
           wss.clients.forEach((client) => {
             if (client !== ws && client.readyState === WebSocket.OPEN) {
               client.send(
@@ -89,8 +102,13 @@ wss.on("connection", (ws, req) => {
                   value: data.value,
                 })
               );
+              clientsNotified++;
             }
           });
+
+          console.log(
+            `Comando ${data.action} reenviado a ${clientsNotified} clientes`
+          );
           break;
 
         default:

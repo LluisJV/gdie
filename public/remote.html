@@ -157,7 +157,9 @@
       function getWebSocketUrl() {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = window.location.host;
-        return `${protocol}//${host}`;
+        const url = `${protocol}//${host}`;
+        console.log("Intentando conectar a WebSocket:", url);
+        return url;
       }
 
       let wsServerUrl = getWebSocketUrl();

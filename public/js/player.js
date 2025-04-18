@@ -234,3 +234,137 @@ function createManualQualityControl(sources) {
 // Export player functions
 window.initializeVideoPlayer = initializeVideoPlayer;
 window.createManualQualityControl = createManualQualityControl;
+
+// Implementación del WebSocket para control remoto
+function setupRemoteControl() {
+  const wsServerUrl = getWebSocketUrl();
+  let socket;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 5;
+  const reconnectDelay = 3000;
+
+  function getWebSocketUrl() {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host;
+    return `${protocol}//${host}`;
+  }
+
+  function connectWebSocket() {
+    console.log("Conectando a WebSocket para control remoto:", wsServerUrl);
+
+    socket = new WebSocket(wsServerUrl);
+
+    socket.onopen = () => {
+      console.log("Conectado al servidor WebSocket para control remoto");
+      // Registrar el cliente como una página de video
+      socket.send(
+        JSON.stringify({
+          type: "register",
+          client: "video",
+        })
+      );
+      reconnectAttempts = 0;
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Mensaje de control remoto recibido:", data);
+
+        // Comprobar todos los tipos de mensajes posibles
+        if (data.type === "command") {
+          console.log("Procesando comando:", data.action, data.value);
+          handleRemoteCommand(data);
+        } else if (data.type === "system") {
+          console.log("Mensaje del sistema:", data.message);
+        } else if (data.type === "ack") {
+          console.log("Confirmación recibida:", data);
+        } else {
+          console.log("Mensaje desconocido:", data);
+        }
+      } catch (err) {
+        console.error("Error al procesar mensaje del control remoto:", err);
+        console.error("Datos recibidos:", event.data);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log("Desconectado del servidor WebSocket de control remoto");
+
+      if (reconnectAttempts < maxReconnectAttempts) {
+        reconnectAttempts++;
+        setTimeout(connectWebSocket, reconnectDelay);
+        console.log(`Reconectando (intento ${reconnectAttempts})...`);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error("Error WebSocket de control remoto:", error);
+    };
+  }
+
+  function handleRemoteCommand(data) {
+    if (!window.player) {
+      console.error("El reproductor de video no está inicializado");
+      return;
+    }
+
+    try {
+      console.log(`Ejecutando acción '${data.action}' con valor:`, data.value);
+
+      switch (data.action) {
+        case "play":
+          console.log("Intentando reproducir el video...");
+          const playPromise = window.player.play();
+
+          if (playPromise !== undefined) {
+            playPromise
+              .then((_) => {
+                console.log("Reproducción iniciada con éxito");
+              })
+              .catch((error) => {
+                console.error("Error al iniciar reproducción:", error);
+              });
+          }
+          break;
+
+        case "pause":
+          console.log("Intentando pausar el video...");
+          window.player.pause();
+          console.log("Video pausado");
+          break;
+
+        case "seek":
+          const currentTime = window.player.currentTime();
+          const newTime = currentTime + data.value;
+          console.log(`Desplazando de ${currentTime}s a ${newTime}s`);
+          window.player.currentTime(newTime >= 0 ? newTime : 0);
+          break;
+
+        case "volume":
+          const currentVolume = window.player.volume();
+          const newVolume = Math.min(
+            Math.max(currentVolume + data.value, 0),
+            1
+          );
+          console.log(`Ajustando volumen de ${currentVolume} a ${newVolume}`);
+          window.player.volume(newVolume);
+          break;
+
+        default:
+          console.warn("Comando de control remoto desconocido:", data.action);
+      }
+    } catch (error) {
+      console.error(`Error al ejecutar comando ${data.action}:`, error);
+    }
+  }
+
+  // Iniciar la conexión WebSocket
+  connectWebSocket();
+}
+
+// Iniciar el control remoto cuando se cargue la página
+document.addEventListener("DOMContentLoaded", function () {
+  // El reproductor de video debe inicializarse primero
+  setTimeout(setupRemoteControl, 1000);
+});
