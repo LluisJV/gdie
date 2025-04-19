@@ -41,6 +41,8 @@ function initializeVideoPlayer() {
     },
   });
 
+  loadChaptersVTT();
+
   // Add the explanations track if it doesn't exist
   window.player.ready(function () {
     console.log("Video.js player is ready");

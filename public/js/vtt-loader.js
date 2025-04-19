@@ -235,8 +235,113 @@ function updateExplanation(currentTime) {
   }
 }
 
+// Load and parse chapters from subtitles VTT file
+async function loadChaptersVTT() {
+  if (!config.vtt.subtitles) {
+    console.log("No hay archivo de subtítulos disponible para capítulos");
+    return;
+  }
+
+  try {
+    console.log(`Intentando cargar capítulos desde: ${config.vtt.subtitles}`);
+    const response = await fetch(config.vtt.subtitles);
+    
+    if (!response.ok) {
+      console.error(`Error al cargar capítulos: ${response.status} ${response.statusText}`);
+      return;
+    }
+
+    const text = await response.text();
+    const lines = text.split("\n");
+    const chaptersList = document.getElementById("chaptersList");
+    chaptersList.innerHTML = ""; // Clear loading message
+
+    let currentChapter = null;
+    const chapters = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Skip empty lines and WEBVTT header
+      if (line === "" || line === "WEBVTT") continue;
+
+      // Skip cue numbers
+      if (/^\d+$/.test(line)) continue;
+
+      // Check if it's a timestamp line
+      if (line.includes("-->")) {
+        const [startTime] = line.split("-->").map(t => t.trim());
+        const startSeconds = timeToSeconds(startTime);
+
+        // The next line should contain the chapter title
+        if (i + 1 < lines.length) {
+          const title = lines[i + 1].trim();
+          if (title && !title.includes("-->") && !/^\d+$/.test(title)) {
+            currentChapter = {
+              start: startSeconds,
+              title: title
+            };
+            chapters.push(currentChapter);
+          }
+        }
+      }
+    }
+
+    // Sort chapters by time
+    chapters.sort((a, b) => a.start - b.start);
+
+    // Create chapter elements
+    if (chapters.length > 0) {
+      const ul = document.createElement("ul");
+      ul.className = "chapters-list";
+
+      chapters.forEach(chapter => {
+        const li = document.createElement("li");
+        const button = document.createElement("button");
+        
+        button.className = "chapter-button";
+        button.textContent = chapter.title;
+        button.onclick = () => {
+          if (window.player) {
+            window.player.currentTime(chapter.start);
+            window.player.play();
+          }
+        };
+
+        // Add time display
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "chapter-time";
+        timeSpan.textContent = formatTime(chapter.start);
+        
+        li.appendChild(button);
+        li.appendChild(timeSpan);
+        ul.appendChild(li);
+      });
+
+      chaptersList.appendChild(ul);
+    } else {
+      chaptersList.textContent = "No se encontraron capítulos en el archivo";
+    }
+
+  } catch (error) {
+    console.error(`Error al cargar capítulos: ${error.message}`);
+    document.getElementById("chaptersList").textContent = 
+      "Error al cargar los capítulos";
+  }
+}
+
+// Helper function to format seconds to HH:MM:SS
+function formatTime(seconds) {
+  const date = new Date(0);
+  date.setSeconds(seconds);
+  return date.toISOString().substr(11, 8).replace(/^00:/, '');
+}
+
+
 // Export VTT functions
 window.timeToSeconds = timeToSeconds;
 window.loadLocationsVTT = loadLocationsVTT;
 window.loadVTTContent = loadVTTContent;
 window.updateExplanation = updateExplanation;
+
+window.loadChaptersVTT = loadChaptersVTT;
