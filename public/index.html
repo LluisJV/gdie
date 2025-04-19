@@ -5,6 +5,347 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>España desde Casa</title>
     <link rel="stylesheet" href="style.css" />
+    <style>
+      /* Estilos mejorados para el recuadro del cuestionario */
+      .quiz-container {
+        margin: 40px auto;
+        max-width: var(--container-width);
+        width: 90%;
+        padding: 30px;
+        border: none;
+        border-radius: 15px;
+        background: linear-gradient(145deg, #f9f9f9, #ffffff);
+        box-shadow: 0 10px 30px rgba(0, 123, 255, 0.15),
+          0 1px 5px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Asegurar que el contenedor del quiz respeta los mismos paddings que el container */
+      @media (min-width: 768px) {
+        .quiz-container {
+          padding-left: var(--spacing-lg);
+          padding-right: var(--spacing-lg);
+        }
+      }
+
+      .quiz-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #007bff, #6610f2, #e83e8c);
+      }
+
+      .quiz-container h2 {
+        text-align: center;
+        color: #1a1a1a;
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+        font-weight: 600;
+        position: relative;
+        padding-bottom: 15px;
+      }
+
+      .quiz-container h2::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 3px;
+        background-color: #007bff;
+        border-radius: 3px;
+      }
+
+      #quiz p {
+        font-size: 18px;
+        margin: 20px 0;
+        line-height: 1.5;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .quiz-option {
+        display: block;
+        width: 100%;
+        margin: 15px 0;
+        padding: 15px 20px;
+        font-size: 16px;
+        background-color: #f8f9fa;
+        color: #333;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .quiz-option:hover {
+        background-color: #e9ecef;
+        border-color: #007bff;
+        transform: translateY(-2px);
+      }
+
+      .quiz-option:active {
+        transform: translateY(1px);
+      }
+
+      .quiz-option::after {
+        content: "→";
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+
+      .quiz-option:hover::after {
+        opacity: 1;
+        right: 15px;
+      }
+
+      #startQuizBtn {
+        display: block;
+        margin: 30px auto;
+        padding: 15px 30px;
+        font-size: 18px;
+        font-weight: 600;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+      }
+
+      #startQuizBtn:hover {
+        background-color: #0069d9;
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        transform: translateY(-2px);
+      }
+
+      #startQuizBtn:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 10px rgba(0, 123, 255, 0.2);
+      }
+
+      #result {
+        text-align: center;
+        font-size: 18px;
+        color: #333;
+        background-color: #e9f5ff;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+        box-shadow: 0 2px 10px rgba(0, 123, 255, 0.1);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeIn 0.5s forwards;
+      }
+
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Nuevos estilos para elementos adicionales */
+      .quiz-intro {
+        text-align: center;
+        padding: 20px 0;
+      }
+
+      .quiz-cities-preview {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin: 25px 0;
+      }
+
+      .city-preview {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #ffffff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .city-preview:hover {
+        transform: scale(1.1);
+        border-color: #007bff;
+      }
+
+      #progress-container {
+        width: 100%;
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        margin: 20px 0;
+        overflow: hidden;
+        display: none;
+      }
+
+      #progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #007bff, #6610f2);
+        width: 0%;
+        transition: width 0.4s ease;
+      }
+
+      .question-number {
+        font-size: 14px !important;
+        color: #6c757d !important;
+        margin-bottom: 0 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .question-text {
+        font-size: 22px !important;
+        margin-top: 5px !important;
+      }
+
+      .options-container {
+        margin-top: 25px;
+      }
+
+      .option-icon {
+        display: inline-block;
+        margin-right: 10px;
+        font-size: 20px;
+      }
+
+      .quiz-option.selected {
+        background-color: #cfe7ff;
+        border-color: #007bff;
+        font-weight: 500;
+      }
+
+      .result-content {
+        padding: 20px;
+      }
+
+      .result-content h3 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .result-city {
+        font-size: 36px;
+        font-weight: 700;
+        color: #007bff;
+        margin-bottom: 15px;
+      }
+
+      .result-description {
+        font-size: 18px;
+        line-height: 1.6;
+        margin-bottom: 25px;
+        color: #555;
+      }
+
+      .visit-city-btn {
+        display: inline-block;
+        padding: 12px 25px;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 30px;
+        font-weight: 600;
+        margin: 10px;
+        transition: all 0.3s ease;
+      }
+
+      .visit-city-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .retry-btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        font-weight: 500;
+        margin: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .retry-btn:hover {
+        background-color: #5a6268;
+      }
+
+      /* Estilos para el indicador de carga */
+      .loading-result {
+        text-align: center;
+        padding: 30px;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        border: 5px solid rgba(0, 123, 255, 0.2);
+        border-radius: 50%;
+        border-top-color: #007bff;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-result p {
+        color: #6c757d;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      /* Estilos para la respuesta de Gemini */
+      .result-reasoning {
+        font-style: italic;
+        color: #6c757d;
+        margin: 10px 0 20px;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .result-error {
+        background-color: #fff3f3;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #dc3545;
+      }
+
+      .result-error h3 {
+        color: #dc3545;
+        margin-bottom: 15px;
+      }
+
+      .result-error p {
+        color: #555;
+        margin-bottom: 20px;
+      }
+    </style>
   </head>
   <body>
     <header>
@@ -43,6 +384,55 @@
         </a>
       </div>
     </div>
+
+    <div class="container">
+      <div class="quiz-container">
+        <h2>🧠 Descubre tu ciudad ideal en España</h2>
+        <div id="quiz">
+          <div class="quiz-intro">
+            <p>
+              ¡Bienvenido a nuestro cuestionario interactivo! Responde algunas
+              preguntas sencillas y te recomendaremos la ciudad española que
+              mejor se adapta a tus preferencias y estilo de vida.
+            </p>
+            <div class="quiz-cities-preview">
+              <img
+                src="images/Madrid.jpg"
+                alt="Madrid"
+                class="city-preview"
+                title="Madrid"
+              />
+              <img
+                src="images/Barcelona.jpg"
+                alt="Barcelona"
+                class="city-preview"
+                title="Barcelona"
+              />
+              <img
+                src="images/Valencia.jpg"
+                alt="Valencia"
+                class="city-preview"
+                title="Valencia"
+              />
+              <img
+                src="images/Palma.jpg"
+                alt="Palma"
+                class="city-preview"
+                title="Palma"
+              />
+            </div>
+          </div>
+        </div>
+        <button id="startQuizBtn" type="button">
+          Comenzar el cuestionario
+        </button>
+        <div id="progress-container">
+          <div id="progress-bar"></div>
+        </div>
+        <div id="result"></div>
+      </div>
+    </div>
+
     <!-- En index.html - Añade esta sección modal antes del cierre de </body> -->
     <div class="video-section" id="videoSection">
       <div class="video-container">
@@ -50,5 +440,171 @@
         <iframe id="videoIframe" frameborder="0" allowfullscreen></iframe>
       </div>
     </div>
+
+    <!-- Añadir el script de Gemini antes del script del cuestionario -->
+    <script src="js/gemini.js"></script>
+
+    <script>
+      function iniciarCuestionario() {
+        const quizDiv = document.getElementById("quiz");
+        const resultDiv = document.getElementById("result");
+        const progressBar = document.getElementById("progress-bar");
+        const progressContainer = document.getElementById("progress-container");
+
+        progressContainer.style.display = "block";
+        quizDiv.innerHTML = ""; // Limpiar contenido anterior
+        resultDiv.innerHTML = ""; // Limpiar resultado anterior
+
+        // Array de preguntas con opciones
+        const preguntas = [
+          {
+            pregunta: "¿Prefieres vivir cerca del mar o en la montaña?",
+            opciones: ["Mar", "Montaña"],
+            iconos: ["🌊", "⛰️"],
+          },
+          {
+            pregunta: "¿Te gusta el clima cálido o frío?",
+            opciones: ["Cálido", "Frío"],
+            iconos: ["☀️", "❄️"],
+          },
+          {
+            pregunta: "¿Prefieres una ciudad grande o pequeña?",
+            opciones: ["Grande", "Pequeña"],
+            iconos: ["🏙️", "🏠"],
+          },
+          {
+            pregunta: "¿Te interesa más la cultura, la fiesta o la naturaleza?",
+            opciones: ["Cultura", "Fiesta", "Naturaleza"],
+            iconos: ["🎭", "🎉", "🌿"],
+          },
+          {
+            pregunta: "¿Trabajas en tecnología, turismo, arte o agricultura?",
+            opciones: ["Tecnología", "Turismo", "Arte", "Agricultura"],
+            iconos: ["💻", "🧳", "🎨", "🌾"],
+          },
+        ];
+
+        const respuestas = {};
+        let preguntaActual = 0;
+
+        // Actualizar la barra de progreso
+        function actualizarProgreso(indice) {
+          const porcentaje = (indice / preguntas.length) * 100;
+          progressBar.style.width = `${porcentaje}%`;
+        }
+
+        // Función para mostrar cada pregunta
+        function mostrarPregunta(i) {
+          if (i >= preguntas.length) {
+            // Mostrar mensaje de carga mientras Gemini procesa
+            resultDiv.innerHTML = `
+              <div class="loading-result">
+                <div class="spinner"></div>
+                <p>Analizando tus preferencias con IA...</p>
+              </div>
+            `;
+
+            // Llamar a Gemini para obtener la recomendación
+            obtenerRecomendacionGemini(respuestas)
+              .then((resultado) => {
+                // Mostrar resultado de Gemini con animación
+                resultDiv.innerHTML = `
+                  <div class="result-content">
+                    <h3>¡Tu ciudad ideal es!</h3>
+                    <div class="result-city">${
+                      resultado.ciudadRecomendada
+                    }</div>
+                    <p class="result-reasoning">${resultado.razonamiento}</p>
+                    <p class="result-description">${resultado.descripcion}</p>
+                    <a href="video.html?city=${resultado.ciudadRecomendada.toLowerCase()}" class="visit-city-btn">
+                      Visitar ${resultado.ciudadRecomendada} ahora
+                    </a>
+                    <button id="retryQuizBtn" class="retry-btn">Volver a intentar</button>
+                  </div>
+                `;
+
+                // Evento para reiniciar cuestionario
+                document
+                  .getElementById("retryQuizBtn")
+                  .addEventListener("click", function () {
+                    iniciarCuestionario();
+                  });
+              })
+              .catch((error) => {
+                console.error("Error al obtener recomendación:", error);
+
+                // Mostrar mensaje de error
+                resultDiv.innerHTML = `
+                  <div class="result-error">
+                    <h3>Lo sentimos</h3>
+                    <p>Ha ocurrido un error al procesar tu recomendación. Por favor, inténtalo de nuevo.</p>
+                    <button id="retryQuizBtn" class="retry-btn">Volver a intentar</button>
+                  </div>
+                `;
+
+                document
+                  .getElementById("retryQuizBtn")
+                  .addEventListener("click", function () {
+                    iniciarCuestionario();
+                  });
+              });
+
+            // Ocultar barra de progreso
+            progressContainer.style.display = "none";
+
+            // Log para desarrollo
+            console.log("Respuestas:", respuestas);
+            return;
+          }
+
+          actualizarProgreso(i);
+          preguntaActual = i;
+
+          const preguntaObj = preguntas[i];
+          quizDiv.innerHTML = `<p class="question-number">Pregunta ${
+            i + 1
+          } de ${preguntas.length}</p>
+                              <p class="question-text"><strong>${
+                                preguntaObj.pregunta
+                              }</strong></p>
+                              <div class="options-container"></div>`;
+
+          const optionsContainer = quizDiv.querySelector(".options-container");
+
+          // Crear botones para las opciones con iconos
+          preguntaObj.opciones.forEach((opcion, index) => {
+            const button = document.createElement("button");
+            button.innerHTML = `<span class="option-icon">${preguntaObj.iconos[index]}</span> ${opcion}`;
+            button.className = "quiz-option";
+            button.addEventListener("click", () => {
+              // Añadir clase para mostrar selección
+              document.querySelectorAll(".quiz-option").forEach((btn) => {
+                btn.classList.remove("selected");
+              });
+              button.classList.add("selected");
+
+              // Pequeña pausa para mostrar la selección antes de pasar a la siguiente pregunta
+              setTimeout(() => {
+                respuestas[preguntaObj.pregunta] = opcion;
+                mostrarPregunta(i + 1);
+              }, 300);
+            });
+            optionsContainer.appendChild(button);
+          });
+        }
+
+        // Iniciar con la primera pregunta
+        mostrarPregunta(0);
+      }
+
+      // Adjuntar el evento al botón de inicio
+      document
+        .getElementById("startQuizBtn")
+        .addEventListener("click", function () {
+          // Ocultar el botón una vez iniciado el cuestionario
+          this.style.display = "none";
+          iniciarCuestionario();
+        });
+    </script>
   </body>
 </html>
