@@ -504,9 +504,21 @@
               </div>
             `;
 
+            // Log para desarrollo
+            console.log("Respuestas completas:", respuestas);
+
+            // Variable para controlar si ya se mostró un resultado
+            let resultadoMostrado = false;
+
             // Llamar a Gemini para obtener la recomendación
             obtenerRecomendacionGemini(respuestas)
               .then((resultado) => {
+                // Evitar mostrar resultados múltiples
+                if (resultadoMostrado) return;
+                resultadoMostrado = true;
+
+                console.log("Respuesta final recibida de Gemini:", resultado);
+
                 // Mostrar resultado de Gemini con animación
                 resultDiv.innerHTML = `
                   <div class="result-content">
@@ -531,6 +543,10 @@
                   });
               })
               .catch((error) => {
+                // Evitar mostrar resultados múltiples
+                if (resultadoMostrado) return;
+                resultadoMostrado = true;
+
                 console.error("Error al obtener recomendación:", error);
 
                 // Mostrar mensaje de error
@@ -551,9 +567,6 @@
 
             // Ocultar barra de progreso
             progressContainer.style.display = "none";
-
-            // Log para desarrollo
-            console.log("Respuestas:", respuestas);
             return;
           }
 
