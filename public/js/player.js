@@ -244,6 +244,7 @@ function setupRemoteControl() {
   let reconnectAttempts = 0;
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000;
+  let roomCode = null;
 
   function getWebSocketUrl() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -273,8 +274,16 @@ function setupRemoteControl() {
         const data = JSON.parse(event.data);
         console.log("Mensaje de control remoto recibido:", data);
 
+        // Manejar mensaje de asignación de sala
+        if (data.type === "room") {
+          roomCode = data.roomCode;
+          console.log("Código de sala asignado:", roomCode);
+
+          // Mostrar el código en la interfaz
+          displayRoomCode(roomCode);
+        }
         // Comprobar todos los tipos de mensajes posibles
-        if (data.type === "command") {
+        else if (data.type === "command") {
           console.log("Procesando comando:", data.action, data.value);
           handleRemoteCommand(data);
         } else if (data.type === "system") {
@@ -303,6 +312,23 @@ function setupRemoteControl() {
     socket.onerror = (error) => {
       console.error("Error WebSocket de control remoto:", error);
     };
+  }
+
+  // Función para mostrar el código de sala en la interfaz
+  function displayRoomCode(code) {
+    const roomCodeElement = document.getElementById("roomCode");
+    const roomCodeContainer = document.getElementById("roomCodeContainer");
+
+    if (roomCodeElement && roomCodeContainer) {
+      roomCodeElement.textContent = code;
+      roomCodeContainer.style.display = "flex";
+
+      // Efecto visual para llamar la atención sobre el código
+      roomCodeContainer.style.transform = "scale(1.1)";
+      setTimeout(() => {
+        roomCodeContainer.style.transform = "scale(1)";
+      }, 300);
+    }
   }
 
   function handleRemoteCommand(data) {

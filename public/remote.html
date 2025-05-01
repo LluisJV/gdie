@@ -34,6 +34,57 @@
         letter-spacing: 1px;
       }
 
+      /* Estilos para el formulario de código de sala */
+      .room-code-form {
+        margin-bottom: 20px;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 15px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .room-code-title {
+        font-size: 16px;
+        margin-bottom: 10px;
+        color: #ccc;
+      }
+
+      .room-code-input {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 15px;
+      }
+
+      .room-code-input input {
+        background: #333;
+        border: none;
+        border-radius: 10px;
+        color: white;
+        padding: 10px 15px;
+        font-size: 20px;
+        text-align: center;
+        letter-spacing: 8px;
+        font-weight: bold;
+        width: 120px;
+        margin-right: 10px;
+      }
+
+      .room-code-input button {
+        background: linear-gradient(145deg, #3498db, #2980b9);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        padding: 10px 15px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .room-code-status {
+        font-size: 14px;
+        color: #aaa;
+        min-height: 20px;
+      }
+
       /* Nuevos estilos para el input del servidor */
       .server-input {
         margin-bottom: 20px;
@@ -120,31 +171,55 @@
       .volume-controls button {
         flex: 1;
       }
+
+      /* Botones deshabilitados */
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
     <div class="remote-container">
       <div class="remote-title">Control Remoto</div>
+
+      <!-- Formulario para código de sala -->
+      <div class="room-code-form">
+        <div class="room-code-title">Ingresa el código de la pantalla:</div>
+        <div class="room-code-input">
+          <input
+            type="text"
+            id="roomCodeInput"
+            placeholder="0000"
+            maxlength="4"
+            pattern="[0-9]*"
+            inputmode="numeric"
+          />
+          <button id="joinRoomBtn">Conectar</button>
+        </div>
+        <div id="roomCodeStatus" class="room-code-status"></div>
+      </div>
+
       <div id="status" class="connection-status disconnected">No conectado</div>
 
       <div class="control-buttons">
-        <button id="playBtn">
+        <button id="playBtn" disabled>
           <span class="button-icon">▶️</span> Reproducir
         </button>
-        <button id="pauseBtn">
+        <button id="pauseBtn" disabled>
           <span class="button-icon">⏸️</span> Pausar
         </button>
-        <button id="rewindBtn">
+        <button id="rewindBtn" disabled>
           <span class="button-icon">⏪</span> Retroceder 10s
         </button>
-        <button id="forwardBtn">
+        <button id="forwardBtn" disabled>
           <span class="button-icon">⏩</span> Adelantar 10s
         </button>
         <div class="volume-controls">
-          <button id="volumeDownBtn">
+          <button id="volumeDownBtn" disabled>
             <span class="button-icon">🔉</span> Volumen -
           </button>
-          <button id="volumeUpBtn">
+          <button id="volumeUpBtn" disabled>
             <span class="button-icon">🔊</span> Volumen +
           </button>
         </div>
@@ -168,6 +243,8 @@
       let reconnectAttempts = 0;
       const maxReconnectAttempts = 5;
       const reconnectDelay = 3000;
+      let connected = false;
+      let roomConnected = false;
 
       // Elementos del DOM
       const statusElement = document.getElementById("status");
@@ -177,6 +254,19 @@
       const forwardBtn = document.getElementById("forwardBtn");
       const volumeUpBtn = document.getElementById("volumeUpBtn");
       const volumeDownBtn = document.getElementById("volumeDownBtn");
+      const roomCodeInput = document.getElementById("roomCodeInput");
+      const joinRoomBtn = document.getElementById("joinRoomBtn");
+      const roomCodeStatus = document.getElementById("roomCodeStatus");
+
+      // Array de botones de control para habilitar/deshabilitar fácilmente
+      const controlButtons = [
+        playBtn,
+        pauseBtn,
+        rewindBtn,
+        forwardBtn,
+        volumeUpBtn,
+        volumeDownBtn,
+      ];
 
       // Función para conectar al WebSocket
       function connectWebSocket() {
@@ -187,7 +277,16 @@
         socket.onopen = () => {
           updateConnectionStatus("connected", "Conectado");
           reconnectAttempts = 0;
+          connected = true;
           console.log("Conectado al servidor WebSocket");
+
+          // Registrarse como cliente remoto
+          socket.send(
+            JSON.stringify({
+              type: "register",
+              client: "remote",
+            })
+          );
         };
 
         socket.onmessage = (event) => {
@@ -200,13 +299,26 @@
             }
             if (data.type === "system") {
               console.log(`Mensaje del sistema: ${data.message}`);
+
+              // Si el mensaje confirma la conexión a una sala, actualizar el estado
+              if (data.message.includes("Conectado a la sala")) {
+                roomConnected = true;
+                updateRoomStatus(true, "Conectado a la pantalla");
+                enableControlButtons(true);
+              }
             }
             if (data.type === "error") {
               console.error(`Error: ${data.message}`);
-              updateConnectionStatus("connected", `Error: ${data.message}`);
-              setTimeout(() => {
-                updateConnectionStatus("connected", "Conectado");
-              }, 3000);
+
+              // Si el error está relacionado con la sala, mostrar en el estado de sala
+              if (data.message.includes("sala")) {
+                updateRoomStatus(false, data.message);
+              } else {
+                updateConnectionStatus("connected", `Error: ${data.message}`);
+                setTimeout(() => {
+                  updateConnectionStatus("connected", "Conectado");
+                }, 3000);
+              }
             }
           } catch (err) {
             console.error("Error al procesar mensaje:", err);
@@ -215,6 +327,9 @@
 
         socket.onclose = () => {
           updateConnectionStatus("disconnected", "Desconectado");
+          connected = false;
+          roomConnected = false;
+          enableControlButtons(false);
           console.log("Desconectado del servidor WebSocket");
 
           if (reconnectAttempts < maxReconnectAttempts) {
@@ -235,6 +350,9 @@
         socket.onerror = (error) => {
           console.error("Error WebSocket:", error);
           updateConnectionStatus("disconnected", "Error de conexión");
+          connected = false;
+          roomConnected = false;
+          enableControlButtons(false);
         };
       }
 
@@ -244,9 +362,56 @@
         statusElement.className = `connection-status ${state}`;
       }
 
+      // Actualiza el estado de la conexión a la sala
+      function updateRoomStatus(success, message) {
+        roomCodeStatus.textContent = message;
+
+        if (success) {
+          roomCodeStatus.style.color = "#2ecc71";
+          roomCodeInput.disabled = true;
+          joinRoomBtn.disabled = true;
+        } else {
+          roomCodeStatus.style.color = "#e74c3c";
+        }
+      }
+
+      // Habilita o deshabilita los botones de control
+      function enableControlButtons(enable) {
+        controlButtons.forEach((button) => {
+          button.disabled = !enable;
+        });
+      }
+
+      // Función para unirse a una sala con el código
+      function joinRoom() {
+        const code = roomCodeInput.value.trim();
+
+        // Validar código
+        if (!code || code.length !== 4 || !/^\d+$/.test(code)) {
+          updateRoomStatus(false, "El código debe tener 4 dígitos");
+          return;
+        }
+
+        // Comprobar si estamos conectados
+        if (!connected || !socket || socket.readyState !== WebSocket.OPEN) {
+          updateRoomStatus(false, "No hay conexión con el servidor");
+          return;
+        }
+
+        // Enviar solicitud para unirse a la sala
+        socket.send(
+          JSON.stringify({
+            type: "joinRoom",
+            roomCode: code,
+          })
+        );
+
+        updateRoomStatus(false, "Conectando a la pantalla...");
+      }
+
       // Envía comandos al servidor
       function sendCommand(action, value = null) {
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (socket && socket.readyState === WebSocket.OPEN && roomConnected) {
           const command = { action };
           if (value !== null) {
             command.value = value;
@@ -254,16 +419,30 @@
           socket.send(JSON.stringify(command));
           console.log("Comando enviado:", command);
         } else {
-          console.warn("No hay conexión para enviar comandos");
-          updateConnectionStatus(
-            "disconnected",
-            "No hay conexión. Reconectando..."
-          );
-          connectWebSocket();
+          console.warn("No hay conexión o no estás conectado a ninguna sala");
+
+          if (!connected) {
+            updateConnectionStatus(
+              "disconnected",
+              "No hay conexión. Reconectando..."
+            );
+            connectWebSocket();
+          } else if (!roomConnected) {
+            updateRoomStatus(false, "No estás conectado a ninguna pantalla");
+          }
         }
       }
 
       // Configuración de eventos para los botones
+      joinRoomBtn.addEventListener("click", joinRoom);
+
+      // Permitir enviar el código con Enter
+      roomCodeInput.addEventListener("keyup", function (event) {
+        if (event.key === "Enter") {
+          joinRoom();
+        }
+      });
+
       playBtn.addEventListener("click", () => sendCommand("play"));
       pauseBtn.addEventListener("click", () => sendCommand("pause"));
       rewindBtn.addEventListener("click", () => sendCommand("seek", -10));

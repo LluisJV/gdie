@@ -119,6 +119,40 @@
         border: 1px solid rgba(0, 0, 0, 0.05);
       }
 
+      /* Estilos para el código de sala */
+      .room-code-container {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 15px;
+        border-radius: 50px;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: bold;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        backdrop-filter: blur(3px);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+      }
+
+      .room-code-container:hover {
+        background: rgba(0, 0, 0, 0.8);
+        transform: scale(1.05);
+      }
+
+      .room-code-container .icon {
+        font-size: 1.2rem;
+      }
+
+      .room-code {
+        letter-spacing: 2px;
+      }
+
       .explanation-title {
         font-size: 1.4rem;
         color: #2c3e50;
@@ -149,7 +183,6 @@
         background-color: rgba(255, 255, 255, 0.7);
         transition: all 0.3s ease;
       }
-
 
       .chapters-container {
         background: linear-gradient(145deg, #ffffff, #f8f9fa);
@@ -315,11 +348,11 @@
         .transcript-container {
           padding: 15px;
         }
-        
+
         .chapter-button {
           padding: 10px 12px;
         }
-        
+
         .chapter-number {
           width: 20px;
           height: 20px;
@@ -327,7 +360,6 @@
           margin-right: 10px;
         }
       }
-
     </style>
   </head>
   <body>
@@ -344,6 +376,16 @@
     <div class="content-container">
       <!-- Video container with Video.js player -->
       <div class="video-container">
+        <!-- Contenedor para mostrar el código de sala -->
+        <div
+          id="roomCodeContainer"
+          class="room-code-container"
+          style="display: none"
+        >
+          <span class="icon">🔗</span>
+          <span>Código: <span id="roomCode" class="room-code">----</span></span>
+        </div>
+
         <video
           id="videoPlayer"
           class="video-js vjs-default-skin vjs-big-play-centered"
@@ -363,7 +405,6 @@
         <div id="transcriptText" class="current-explanation">
           Cargando explicación...
         </div>
-        
       </div>
       <div class="transcript-container">
         <div class="explanation-title">Capítulos:</div>
