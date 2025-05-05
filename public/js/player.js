@@ -236,6 +236,7 @@ function createManualQualityControl(sources) {
 // Export player functions
 window.initializeVideoPlayer = initializeVideoPlayer;
 window.createManualQualityControl = createManualQualityControl;
+window.setupRemoteControl = setupRemoteControl;
 
 // Implementación del WebSocket para control remoto
 function setupRemoteControl() {
@@ -249,77 +250,89 @@ function setupRemoteControl() {
   function getWebSocketUrl() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    return `${protocol}//${host}`;
+    const url = `${protocol}//${host}`;
+    console.log("WebSocket URL:", url);
+    return url;
   }
 
   function connectWebSocket() {
-    console.log("Conectando a WebSocket para control remoto:", wsServerUrl);
+    console.log("Intentando conectar a WebSocket:", wsServerUrl);
 
-    socket = new WebSocket(wsServerUrl);
+    try {
+      socket = new WebSocket(wsServerUrl);
 
-    socket.onopen = () => {
-      console.log("Conectado al servidor WebSocket para control remoto");
-      // Registrar el cliente como una página de video
-      socket.send(
-        JSON.stringify({
+      socket.onopen = () => {
+        console.log("✅ Conexión WebSocket establecida");
+        // Registrar el cliente como una página de video
+        const registerMessage = {
           type: "register",
           client: "video",
-        })
-      );
-      reconnectAttempts = 0;
-    };
+        };
+        console.log("Enviando mensaje de registro:", registerMessage);
+        socket.send(JSON.stringify(registerMessage));
+        reconnectAttempts = 0;
+      };
 
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("Mensaje de control remoto recibido:", data);
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("📨 Mensaje recibido:", data);
 
-        // Manejar mensaje de asignación de sala
-        if (data.type === "room") {
-          roomCode = data.roomCode;
-          console.log("Código de sala asignado:", roomCode);
+          // Manejar mensaje de asignación de sala
+          if (data.type === "room") {
+            roomCode = data.roomCode;
+            console.log("🎯 Código de sala asignado:", roomCode);
 
-          // Mostrar el código en la interfaz
-          displayRoomCode(roomCode);
+            // Mostrar el código en la interfaz
+            displayRoomCode(roomCode);
+          }
+          // Comprobar todos los tipos de mensajes posibles
+          else if (data.type === "command") {
+            console.log("🎮 Procesando comando:", data.action, data.value);
+            handleRemoteCommand(data);
+          } else if (data.type === "system") {
+            console.log("ℹ️ Mensaje del sistema:", data.message);
+          } else if (data.type === "ack") {
+            console.log("✅ Confirmación recibida:", data);
+          } else {
+            console.log("❓ Mensaje desconocido:", data);
+          }
+        } catch (err) {
+          console.error("❌ Error al procesar mensaje:", err);
+          console.error("Datos recibidos:", event.data);
         }
-        // Comprobar todos los tipos de mensajes posibles
-        else if (data.type === "command") {
-          console.log("Procesando comando:", data.action, data.value);
-          handleRemoteCommand(data);
-        } else if (data.type === "system") {
-          console.log("Mensaje del sistema:", data.message);
-        } else if (data.type === "ack") {
-          console.log("Confirmación recibida:", data);
+      };
+
+      socket.onclose = (event) => {
+        console.log("🔌 WebSocket cerrado:", event.code, event.reason);
+
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          console.log(
+            `🔄 Reconectando (intento ${reconnectAttempts}/${maxReconnectAttempts})...`
+          );
+          setTimeout(connectWebSocket, reconnectDelay);
         } else {
-          console.log("Mensaje desconocido:", data);
+          console.error("❌ Máximo número de intentos de reconexión alcanzado");
         }
-      } catch (err) {
-        console.error("Error al procesar mensaje del control remoto:", err);
-        console.error("Datos recibidos:", event.data);
-      }
-    };
+      };
 
-    socket.onclose = () => {
-      console.log("Desconectado del servidor WebSocket de control remoto");
-
-      if (reconnectAttempts < maxReconnectAttempts) {
-        reconnectAttempts++;
-        setTimeout(connectWebSocket, reconnectDelay);
-        console.log(`Reconectando (intento ${reconnectAttempts})...`);
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error("Error WebSocket de control remoto:", error);
-    };
+      socket.onerror = (error) => {
+        console.error("❌ Error en WebSocket:", error);
+      };
+    } catch (error) {
+      console.error("❌ Error al crear WebSocket:", error);
+    }
   }
 
   // Función para mostrar el código de sala en la interfaz
   function displayRoomCode(code) {
+    console.log("Intentando mostrar código de sala:", code);
     const roomCodeElement = document.getElementById("roomCode");
     const roomCodeContainer = document.getElementById("roomCodeContainer");
 
     if (roomCodeElement && roomCodeContainer) {
+      console.log("Elementos del DOM encontrados, actualizando código...");
       roomCodeElement.textContent = code;
       roomCodeContainer.style.display = "flex";
 
@@ -328,6 +341,13 @@ function setupRemoteControl() {
       setTimeout(() => {
         roomCodeContainer.style.transform = "scale(1)";
       }, 300);
+    } else {
+      console.error(
+        "❌ No se encontraron los elementos del DOM para mostrar el código"
+      );
+      if (!roomCodeElement) console.error("Elemento 'roomCode' no encontrado");
+      if (!roomCodeContainer)
+        console.error("Elemento 'roomCodeContainer' no encontrado");
     }
   }
 
@@ -393,6 +413,6 @@ function setupRemoteControl() {
 
 // Iniciar el control remoto cuando se cargue la página
 document.addEventListener("DOMContentLoaded", function () {
-  // El reproductor de video debe inicializarse primero
-  setTimeout(setupRemoteControl, 1000);
+  // Call setupRemoteControl immediately instead of with a timeout
+  setupRemoteControl();
 });

@@ -376,7 +376,7 @@
     <div class="content-container">
       <!-- Video container with Video.js player -->
       <div class="video-container">
-        <!-- Contenedor para mostrar el código de sala -->
+        <!-- Contenedor para mostrar el código de sala  -->
         <div
           id="roomCodeContainer"
           class="room-code-container"
@@ -392,7 +392,7 @@
           controls
           preload="auto"
           crossorigin="anonymous"
-          data-setup="{}"
+          data-setup='{"fluid": true}'
         >
           Tu navegador no soporta la reproducción de video.
         </video>
@@ -627,6 +627,42 @@
             );
           }
         }
+      });
+    </script>
+    <!-- Debug script for room code -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("Debugging room code display");
+
+        // Monitor WebSocket connection
+        const originalWebSocket = window.WebSocket;
+        window.WebSocket = function (url, protocols) {
+          console.log("WebSocket connection attempt to:", url);
+
+          const socket = new originalWebSocket(url, protocols);
+
+          socket.addEventListener("open", function (event) {
+            console.log("WebSocket connection established!");
+          });
+
+          socket.addEventListener("error", function (event) {
+            console.error("WebSocket connection error!", event);
+          });
+
+          socket.addEventListener("message", function (event) {
+            console.log("WebSocket message received:", event.data);
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === "room") {
+                console.log("Room code received:", data.roomCode);
+              }
+            } catch (e) {
+              console.error("Error parsing WebSocket message:", e);
+            }
+          });
+
+          return socket;
+        };
       });
     </script>
   </body>
