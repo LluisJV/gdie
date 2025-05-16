@@ -368,15 +368,10 @@
     </header>
     <div class="control-links">
       <a class="back-link" href="index.html">← Volver a la página principal</a>
-      <a class="remote-link" href="remote.html" target="_blank"
-        >📱 Control Remoto</a
-      >
-    </div>
-
-    <div class="content-container">
-      <!-- Video container with Video.js player -->
-      <div class="video-container">
-        <!-- Contenedor para mostrar el código de sala  -->
+      <div class="remote-container">
+        <a class="remote-link" href="remote.html" target="_blank"
+          >📱 Control Remoto</a
+        >
         <div
           id="roomCodeContainer"
           class="room-code-container"
@@ -385,6 +380,12 @@
           <span class="icon">🔗</span>
           <span>Código: <span id="roomCode" class="room-code">----</span></span>
         </div>
+      </div>
+    </div>
+
+    <div class="content-container">
+      <!-- Video container with Video.js player -->
+      <div class="video-container">
 
         <video
           id="videoPlayer"
@@ -699,6 +700,12 @@
 
           socket.addEventListener("open", function (event) {
             console.log("WebSocket connection established!");
+            // Send registration message to identify as video client
+            console.log("Sending registration message as video client");
+            socket.send(JSON.stringify({
+              type: "register",
+              client: "video"
+            }));
           });
 
           socket.addEventListener("error", function (event) {
@@ -711,6 +718,27 @@
               const data = JSON.parse(event.data);
               if (data.type === "room") {
                 console.log("Room code received:", data.roomCode);
+                // Wait for DOM to be fully loaded before updating
+                if (document.readyState === 'complete') {
+                  // Show the room code in the UI
+                  const roomCodeContainer = document.getElementById('roomCodeContainer');
+                  const roomCodeElement = document.getElementById('roomCode');
+                  if (roomCodeContainer && roomCodeElement) {
+                    roomCodeElement.textContent = data.roomCode;
+                    roomCodeContainer.style.display = 'flex';
+                  }
+                } else {
+                  // DOM is not ready yet, wait for it
+                  console.log("DOM not ready, waiting for load event");
+                  window.addEventListener('load', function() {
+                    const roomCodeContainer = document.getElementById('roomCodeContainer');
+                    const roomCodeElement = document.getElementById('roomCode');
+                    if (roomCodeContainer && roomCodeElement) {
+                      roomCodeElement.textContent = data.roomCode;
+                      roomCodeContainer.style.display = 'flex';
+                    }
+                  });
+                }
               }
             } catch (e) {
               console.error("Error parsing WebSocket message:", e);
