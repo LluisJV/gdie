@@ -35,12 +35,58 @@ function initializeVideoPlayer() {
   window.player.ready(function () {
     console.log("Video.js player is ready");
 
-    // 3) Streaming adaptativo: DASH con fallback a HLS
-    const adaptiveSources = [
-      { src: config.video.dashUrl, type: "application/dash+xml" },
-      { src: config.video.hlsUrl, type: "application/x-mpegURL" },
-    ];
-    window.player.src(adaptiveSources);
+    // 3) Configuración de streaming adaptativo con selección de calidad
+    const dashSource = {
+      src: config.video.dashUrl,
+      type: 'application/dash+xml',
+      keySystemOptions: [
+        {
+          name: 'com.widevine.alpha',
+          options: { 'com.widevine.alpha': { persistentState: 'required' } }
+        }
+      ]
+    };
+
+    const hlsSource = {
+      src: config.video.hlsUrl,
+      type: 'application/x-mpegURL',
+      withCredentials: false
+    };
+
+    // Configuración del reproductor para streaming adaptativo
+    const playerOptions = {
+      html5: {
+        vhs: {
+          enableLowInitialPlaylist: true,
+          smoothQualityChange: true,
+          overrideNative: !videojs.browser.IS_ANY_SAFARI,
+          limitRenditionByPlayerDimensions: false // Desactivar la limitación automática de calidad
+        }
+      }
+    };
+
+    // Aplicar configuración al reproductor
+    window.player.qualityLevels();
+    window.player.src([dashSource, hlsSource]);
+    
+    // Configurar calidad automática por defecto
+    window.player.tech_.on('loadedmetadata', function() {
+      if (window.player.tech_.vhs) {
+        const qualityLevels = window.player.qualityLevels();
+        // Habilitar todas las calidades por defecto (modo automático)
+        for (let i = 0; i < qualityLevels.length; i++) {
+          qualityLevels[i].enabled = true;
+        }
+        
+        // Guardar referencia a los qualityLevels para usarla más tarde
+        window.videoQualityLevels = qualityLevels;
+        
+        // Establecer calidad automática por defecto si no hay una selección previa
+        if (typeof window.videoQuality === 'undefined') {
+          window.videoQuality = 'auto';
+        }
+      }
+    });
 
     // 4) TextTracks (subtítulos)
     const existing = window.player.remoteTextTracks();
@@ -80,21 +126,17 @@ function initializeVideoPlayer() {
       false
     );
 
-    // 5) Selector de calidad (tu código existente)
-    const sources = getSourcesForSelectorPlugin();
-    let initial = sources.find((s) => s.selected) || sources[0];
-    try {
-      if (!window.player.controlBar.getChild("QualitySelector")) {
-        window.player.controlBar.addChild("QualitySelector", {});
+    // 5) Configuración de calidad automática
+    window.player.qualityLevels();
+    
+    // Opcional: Mostrar la calidad actual en consola cuando cambie
+    window.player.tech_.on('ratechange', function() {
+      const qualityLevels = window.player.qualityLevels();
+      const currentLevel = qualityLevels[qualityLevels.selectedIndex];
+      if (currentLevel) {
+        console.log('Current quality:', currentLevel.height + 'p');
       }
-      window.player.updateSrc(sources);
-      window.player.on("qualityRequested", (e, newS) => {
-        changeQuality(newS.label.toLowerCase());
-      });
-    } catch (err) {
-      console.error("Error quality selector:", err);
-      createManualQualityControl(sources);
-    }
+    });
 
     // 6) Pista metadata para explicaciones
     const tracks = window.player.textTracks();

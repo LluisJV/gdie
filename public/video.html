@@ -451,20 +451,17 @@
           const player = videojs.getPlayer("videoPlayer");
           if (!player) return;
 
-          const qualities = [
-            { label: "4K", value: "4k" },
-            { label: "1080p", value: "1080p" },
-            { label: "480p", value: "480p" },
-          ];
-
+          // Get available quality levels from the player
+          const qualityLevels = player.qualityLevels ? Array.from(player.qualityLevels()) : [];
+          
           // Create quality menu container
           const menuWrapper = document.createElement("div");
           menuWrapper.className = "vjs-quality-menu-wrapper";
+          menuWrapper.id = "qualityMenuWrapper";
 
           // Create button
           const button = document.createElement("button");
-          button.className =
-            "vjs-quality-menu-button vjs-menu-button vjs-control";
+          button.className = "vjs-quality-menu-button vjs-menu-button vjs-control";
           button.innerHTML = "";
           button.setAttribute("title", "Calidad de video");
 
@@ -472,8 +469,49 @@
           const menu = document.createElement("div");
           menu.className = "vjs-quality-menu";
 
-          // Add menu items
-          qualities.forEach((quality) => {
+          // Add Auto option
+          const autoItem = document.createElement("div");
+          autoItem.className = "vjs-quality-menu-item";
+          if (!window.videoQuality || window.videoQuality === 'auto') {
+            autoItem.className += " selected";
+          }
+          autoItem.textContent = "Auto";
+          autoItem.dataset.quality = "auto";
+          autoItem.addEventListener("click", function(e) {
+            e.stopPropagation();
+            setQualityMode('auto');
+            updateSelectedItem(this);
+            toggleMenu(false);
+          });
+          menu.appendChild(autoItem);
+
+          // Add separator
+          const separator = document.createElement("div");
+          separator.className = "vjs-menu-item vjs-menu-item-separator";
+          separator.style.padding = '5px 0';
+          separator.innerHTML = '<hr style="margin: 5px 10px; border-color: rgba(255,255,255,0.2)">';
+          menu.appendChild(separator);
+
+          // Add quality options
+          const qualities = [
+            { label: "4K", value: "4k", height: 2160 },
+            { label: "1080p", value: "1080p", height: 1080 },
+            { label: "720p", value: "720p", height: 720 },
+            { label: "480p", value: "480p", height: 480 },
+            { label: "360p", value: "360p", height: 360 },
+            { label: "240p", value: "240p", height: 240 }
+          ];
+
+          // Filter available qualities based on what's in the manifest
+          const availableQualities = qualities.filter(q => {
+            return qualityLevels.some(level => level.height === q.height);
+          });
+
+          // If no quality levels detected, show default options
+          const displayQualities = availableQualities.length > 0 ? availableQualities : qualities;
+
+          // Add quality menu items
+          displayQualities.forEach((quality) => {
             const menuItem = document.createElement("div");
             menuItem.className = "vjs-quality-menu-item";
             if (window.videoQuality === quality.value) {
@@ -481,24 +519,42 @@
             }
             menuItem.textContent = quality.label;
             menuItem.dataset.quality = quality.value;
-            menuItem.addEventListener("click", function (e) {
+            menuItem.dataset.height = quality.height;
+            menuItem.addEventListener("click", function(e) {
               e.stopPropagation();
-              const qualityValue = this.dataset.quality;
-              // Call the quality change function
-              if (typeof changeQuality === "function") {
-                changeQuality(qualityValue);
-              }
-              // Update selected state
-              document
-                .querySelectorAll(".vjs-quality-menu-item")
-                .forEach((item) => {
-                  item.classList.remove("selected");
-                });
-              this.classList.add("selected");
+              setQualityMode('manual', this.dataset.height);
+              updateSelectedItem(this);
               toggleMenu(false);
             });
             menu.appendChild(menuItem);
           });
+
+          // Function to update selected item
+          function updateSelectedItem(selectedItem) {
+            document.querySelectorAll('.vjs-quality-menu-item').forEach(item => {
+              item.classList.remove('selected');
+            });
+            selectedItem.classList.add('selected');
+          }
+
+          // Function to set quality mode
+          function setQualityMode(mode, height) {
+            if (mode === 'auto') {
+              // Enable all quality levels for auto selection
+              qualityLevels.forEach(level => {
+                level.enabled = true;
+              });
+              window.videoQuality = 'auto';
+              button.setAttribute('title', 'Calidad: Auto');
+            } else if (mode === 'manual' && height) {
+              // Set specific quality level
+              qualityLevels.forEach(level => {
+                level.enabled = (level.height === parseInt(height));
+              });
+              window.videoQuality = Array.from(qualities).find(q => q.height === parseInt(height))?.value || '';
+              button.setAttribute('title', `Calidad: ${window.videoQuality}`);
+            }
+          }
 
           // Toggle menu function
           function toggleMenu(show) {
