@@ -1,428 +1,148 @@
 // Video player functionality
 
-// Objeto global para almacenar las calidades disponibles en DASH
-window.dashQualities = {
-  available: false,
-  resolutions: [],
-};
+// Iniciar el control remoto cuando se cargue la página
+document.addEventListener("DOMContentLoaded", function () {
+  initializeConfig();        // → rellena config.video.url (y redirige si falta ?quality)
+  initializeVideoPlayer();   // → crea el player y hace player.src(config.video.url)
+  setupRemoteControl();      // → WS, ya con player inicializado
+});
 
-// Initialize the video player with Video.js
-function initializeVideoPlayer() {
-  // Register custom TTS button component first
-  registerTTSButtonComponent();
+// 1) Registrar el botón de Fuente (sólo una vez, antes de crear el player)
+const MenuButton = videojs.getComponent('MenuButton');
+const MenuItem   = videojs.getComponent('MenuItem');
 
-  // Check browser compatibility for streaming formats
-  const hasHLSSupport = window.checkHLSSupport();
-  const hasDASHSupport = window.checkDASHSupport();
-
-  console.log(
-    `Comprobando compatibilidad del navegador: HLS: ${hasHLSSupport}, DASH: ${hasDASHSupport}`
-  );
-
-  // Check if the streaming plugins are loaded
-  try {
-    // Check for HLS support
-    if (typeof videojs.Html5Hlsjs !== "undefined") {
-      console.log("HLS plugin is available");
-    } else {
-      console.warn(
-        "HLS plugin is not available, but will try to use native HLS support if available"
-      );
-    }
-
-    // Check for DASH support
-    if (typeof videojs.Html5DashJS !== "undefined") {
-      console.log("DASH plugin is available");
-    } else {
-      console.warn("DASH plugin is not available");
-    }
-
-    // Check if the quality selector plugin is loaded
-    if (typeof videojs.registerPlugin !== "undefined") {
-      console.log("VideoJS plugin system is available");
-    } else {
-      console.error("VideoJS plugin system is not available");
-    }
-  } catch (error) {
-    console.error("Error checking VideoJS plugin system:", error);
+class ProtocolMenuButton extends MenuButton {
+  constructor(player, options) {
+    super(player, options);
+    this.controlText('Fuente');
   }
-
-  // Initialize Video.js player
-  window.player = videojs("videoPlayer", {
-    controls: true,
-    autoplay: false,
-    preload: "auto",
-    fluid: true,
-    playbackRates: [0.5, 1, 1.5, 2],
-    html5: {
-      vhs: {
-        overrideNative: true,
-        limitRenditionByPlayerDimensions: false,
-        useDevicePixelRatio: true,
-      },
-      nativeAudioTracks: false,
-      nativeVideoTracks: false,
-    },
-    controlBar: {
-      children: [
-        "playToggle",
-        "volumePanel",
-        "progressControl",
-        "currentTimeDisplay",
-        "timeDivider",
-        "durationDisplay",
-        "TTSButton", // Add our custom TTS button to the control bar
-        "subtitlesButton",
-        "fullscreenToggle",
-      ],
-    },
-    plugins: {
-      qualitySelector: false,
-    },
-  });
-
-  loadChaptersVTT();
-
-  // Add the explanations track if it doesn't exist
-  window.player.ready(function () {
-    console.log("Video.js player is ready");
-
-    // Get sources with HLS and DASH options
-    const sources = getSourcesForSelectorPlugin();
-    console.log("Available sources:", sources);
-
-    // Find selected source or default to first
-    let initialSource = sources.find((source) => source.selected);
-    if (!initialSource) {
-      initialSource = sources[0]; // Default to first source (DASH)
-    }
-
-    console.log("Setting initial source:", initialSource);
-
-    // Set initial video source
-    window.player.src(initialSource);
-
-    // Setup DASH functionality
-    if (initialSource.type === "application/dash+xml") {
-      window.player.one("dashInitialized", function () {
-        console.log(
-          "DASH initialized, setting up quality selection and audio track handling"
-        );
-
-        if (window.player.dash && window.player.dash.mediaPlayer) {
-          const dashPlayer = window.player.dash.mediaPlayer;
-
-          // Detect available video resolutions from DASH manifest
-          window.player.on("loadedmetadata", function () {
-            setTimeout(function () {
-              try {
-                // Get video tracks from DASH player
-                const videoTracks = dashPlayer.getTracksFor("video");
-                if (videoTracks && videoTracks.length > 0) {
-                  console.log("Available DASH video tracks:", videoTracks);
-
-                  // Extract resolutions and bitrates
-                  const resolutions = videoTracks.map((track) => {
-                    return {
-                      id: track.id,
-                      width: track.width,
-                      height: track.height,
-                      bitrate: track.bitrateValue,
-                      label: `${track.width}x${track.height} (${Math.round(
-                        track.bitrateValue / 1000
-                      )} kbps)`,
-                    };
-                  });
-
-                  // Sort by resolution (height) in descending order
-                  resolutions.sort((a, b) => b.height - a.height);
-
-                  // Set global variable for later use
-                  window.dashQualities.available = true;
-                  window.dashQualities.resolutions = resolutions;
-
-                  // Add auto quality option at the top
-                  resolutions.unshift({
-                    id: "auto",
-                    width: 0,
-                    height: 0,
-                    bitrate: 0,
-                    label: "Auto (Adaptativo)",
-                  });
-
-                  console.log("DASH resolutions available:", resolutions);
-
-                  // Update quality menu with these options
-                  createDashQualityMenu(resolutions);
-                }
-
-                // Setup audio track selection based on config
-                const audioTracks = dashPlayer.getTracksFor("audio");
-                if (audioTracks && audioTracks.length > 0) {
-                  console.log("Available DASH audio tracks:", audioTracks);
-
-                  let targetTrack = null;
-                  if (config.audio.currentQuality === "high") {
-                    // Find track with highest bitrate
-                    targetTrack = audioTracks.reduce((prev, current) =>
-                      prev.bitrateValue > current.bitrateValue ? prev : current
-                    );
-                  } else {
-                    // Find track with lowest bitrate
-                    targetTrack = audioTracks.reduce((prev, current) =>
-                      prev.bitrateValue < current.bitrateValue ? prev : current
-                    );
-                  }
-
-                  if (targetTrack) {
-                    console.log(
-                      `Setting initial audio track to: ${targetTrack.id}, bitrate: ${targetTrack.bitrateValue}`
-                    );
-                    dashPlayer.setCurrentTrack(targetTrack);
-                  }
-                }
-              } catch (e) {
-                console.error("Error setting up DASH tracks:", e);
-              }
-            }, 1000); // Give DASH player a moment to load tracks
-          });
-        }
+  buildCSSClass() {
+    return `vjs-menu-button vjs-menu-button-popup vjs-icon-hd ${super.buildCSSClass()}`;
+  }
+  createItems() {
+    return (window.videoSources || []).map(srcObj => {
+      const item = new MenuItem(this.player_, {
+        label:      srcObj.label,
+        selectable: true,
+        selected:   false
       });
-    }
-
-    // Remove existing subtitle tracks
-    const existingTracks = window.player.remoteTextTracks();
-    const tracksToRemove = Array.from(existingTracks);
-    tracksToRemove.forEach((track) => {
-      window.player.removeRemoteTextTrack(track);
+      item.on('click', () => {
+        this.player_.src(srcObj);
+        this.player_.play().catch(() => {});
+      });
+      return item;
     });
-
-    // Add subtitle tracks with correct sources
-    const cityCapitalized =
-      config.city.name.charAt(0).toUpperCase() + config.city.name.slice(1);
-
-    // Add Spanish subtitles
-    window.player.addRemoteTextTrack(
-      {
-        kind: "subtitles",
-        srclang: "es",
-        label: "Español",
-        src: `vtts/${config.city.name}/subtitulos${cityCapitalized}.vtt`,
-        default: config.language.current === "es",
-      },
-      false
-    );
-
-    // Add English subtitles
-    window.player.addRemoteTextTrack(
-      {
-        kind: "subtitles",
-        srclang: "en",
-        label: "English",
-        src: `vtts/${config.city.name}/subtitulos${cityCapitalized}_en.vtt`,
-      },
-      false
-    );
-
-    // Add Catalan subtitles
-    window.player.addRemoteTextTrack(
-      {
-        kind: "subtitles",
-        srclang: "ca",
-        label: "Català",
-        src: `vtts/${config.city.name}/subtitulos${cityCapitalized}_ca.vtt`,
-      },
-      false
-    );
-
-    // Set up sources with different qualities for the plugin
-    console.log("Quality sources:", sources);
-
-    // Manually add sources for quality selection
-    try {
-      // Try to use the plugin
-      if (window.player.controlBar.getChild("QualitySelector") === undefined) {
-        // Use the plugin manually
-        window.player.controlBar.addChild("QualitySelector", {});
-      }
-      window.player.updateSrc(sources);
-
-      // Add quality change event listener manually
-      window.player.on("qualityRequested", function (event, newSource) {
-        console.log("Quality requested:", newSource.label);
-        changeQuality(newSource.label.toLowerCase());
-      });
-    } catch (error) {
-      console.error("Error setting up quality selector:", error);
-
-      // Fallback: Create a manual dropdown for quality selection
-      createManualQualityControl(sources);
-    }
-
-    // Add metadata track for explanations if it doesn't exist
-    let hasExplanationTrack = false;
-    const textTracks = window.player.textTracks();
-
-    for (let i = 0; i < textTracks.length; i++) {
-      if (
-        textTracks[i].kind === "metadata" &&
-        textTracks[i].label === "Explicaciones"
-      ) {
-        hasExplanationTrack = true;
-        break;
-      }
-    }
-
-    if (!hasExplanationTrack) {
-      window.player.addRemoteTextTrack(
-        {
-          kind: "metadata",
-          src: config.vtt.explanations,
-          label: "Explicaciones",
-          default: true,
-        },
-        false
-      );
-    }
-
-    // Set initial subtitles language
-    setSubtitles(config.language.current);
-
-    // Load explanations
-    loadVTTContent();
-  });
-
-  // Handle timeupdate event (equivalent to Plyr's timeupdate)
-  window.player.on("timeupdate", function () {
-    const currentTime = window.player.currentTime();
-    if (config.segments.explanations.length > 0) {
-      updateExplanation(currentTime);
-    }
-    updateMap(currentTime);
-  });
-
-  // Handle text track changes (for subtitles)
-  window.player.on("texttrackchange", function () {
-    const tracks = window.player.textTracks();
-    for (let i = 0; i < tracks.length; i++) {
-      const track = tracks[i];
-      if (track.kind === "subtitles" && track.mode === "showing") {
-        console.log("Active subtitle track changed to:", track.language);
-
-        // Update current language for TTS
-        if (config.language.current !== track.language) {
-          config.language.current = track.language;
-          console.log(
-            "Updated currentLanguage for TTS to:",
-            config.language.current
-          );
-
-          // If TTS is enabled and there's active speech, restart it with the new language
-          if (config.tts.enabled && config.tts.currentSpeech) {
-            window.speechSynthesis.cancel();
-            config.tts.currentSpeech = null;
-
-            // If there are active cues, speak them with the new language
-            if (track.activeCues && track.activeCues.length > 0) {
-              const cueText = track.activeCues[0].text;
-              speakSubtitle(cueText);
-            }
-          }
-        }
-
-        // Update the TTS button state if it exists
-        const ttsButton = window.player.controlBar.getChild("TTSButton");
-        if (ttsButton) {
-          ttsButton.updateButtonState();
-        }
-
-        setExplanations(track.language);
-
-        // Add cuechange handler for the active track
-        track.removeEventListener("cuechange", handleSubtitleCueChange);
-        track.addEventListener("cuechange", handleSubtitleCueChange);
-        break;
-      }
-    }
-  });
-
-  // Function to handle subtitle cue changes for TTS
-  function handleSubtitleCueChange(event) {
-    if (config.tts.enabled && this.activeCues && this.activeCues.length > 0) {
-      // Get the text of the active cue
-      const cueText = this.activeCues[0].text;
-      // Speak the subtitle text
-      speakSubtitle(cueText);
-    }
   }
 }
+videojs.registerComponent('ProtocolMenuButton', ProtocolMenuButton);
 
-// Function to create a menu with DASH quality options
-function createDashQualityMenu(resolutions) {
-  console.log("Creating DASH quality menu with resolutions:", resolutions);
-
-  // Find quality menu container
-  const qualityMenu = document.querySelector(".vjs-quality-menu");
-  if (!qualityMenu) {
-    console.error("Cannot find quality menu to add DASH resolutions");
-    return;
+// 2) Construye videoSources dinámicamente según la ciudad
+function buildVideoSources() {
+  const city = config.city.name.toLowerCase();
+  const base = `https://gdie2504.ltim.uib.es/videos/${city}/out/manifest`;
+  const sources = [
+    { label: 'DASH Adaptativo', src: `${base}.mpd`,   type: 'application/dash+xml' },
+    { label: 'HLS Adaptativo',  src: `${base}.m3u8`, type: 'application/x-mpegURL' }
+  ];
+  if (city === 'madrid') {
+    sources.push({
+      label: 'Blockchain HLS',
+      src:   'https://media.thetavideoapi.com/org_q9ej3ubwdj5hx8k5er8vufksb6jg/srvacc_azhbaxmcf2eeswt0ky23ifjmc/video_u3bvycgd7dtvbgdy9xzpwn0nk2/master.m3u8',
+      type:  'application/x-mpegURL'
+    });
   }
+  console.log('videoSources:', sources); // Para depurar
+  window.videoSources = sources;
+}
 
-  // Clear existing menu items
+// 3) Inicializa el player con el botón “Fuente” y las fuentes
+function initializeVideoPlayer() {
+  registerTTSButtonComponent();
+  buildVideoSources();   // recalcula videoSources según la ciudad
+
+  window.player = videojs('videoPlayer', {
+    controls: true,
+    preload:  'auto',
+    html5:    { vhs: { enableLowInitialPlaylist: true } },
+    controlBar: {
+      children: [
+        'playToggle',
+        'volumePanel',
+        'progressControl',
+        'currentTimeDisplay',
+        'timeDivider',
+        'durationDisplay',
+        'ProtocolMenuButton',  // menú de Fuente
+        'fullscreenToggle'
+      ]
+    }
+  });
+
+  // Cargamos las fuentes en VHS
+  window.player.src(window.videoSources);
+
+  // Un único ready para el resto de tu setup (subtítulos/VTT/etc.)
+  window.player.ready(() => {
+    // Carga inicial de pistas
+    loadAllTextTracks();
+
+    // Cada vez que cambias de fuente (DASH/HLS), recarga pistas
+    window.player.on('loadedmetadata', () => {
+      // Limpia pistas viejas
+      window.player.remoteTextTracks().forEach(t => window.player.removeRemoteTextTrack(t));
+      // Recarga todas
+      loadAllTextTracks();
+    });
+  });
+}
+
+// Cambiar calidad de video (DASH/HLS)
+function changeQuality(label) {
+  const isHls = label === "hls";
+  window.player.src({
+    src: `https://gdie2504.ltim.uib.es/videos/${config.city.name}/out/manifest.${isHls?"m3u8":"mpd"}`,
+    type: isHls
+      ? "application/x-mpegURL"
+      : "application/dash+xml"
+  });
+  // Forzamos play tras cambiar de fuente
+  window.player.play().catch(() => {});
+}
+
+// Menú de calidad para DASH
+function createDashQualityMenu(resolutions) {
+  const qualityMenu = document.querySelector(".vjs-quality-menu");
+  if (!qualityMenu) return;
+
   qualityMenu.innerHTML = "";
 
-  // Get the current player
   const player = videojs.getPlayer("videoPlayer");
-  if (!player || !player.dash || !player.dash.mediaPlayer) {
-    console.error("DASH player not available for quality selection");
-    return;
-  }
-
+  if (!player || !player.dash || !player.dash.mediaPlayer) return;
   const dashPlayer = player.dash.mediaPlayer;
 
-  // Add items for each resolution
   resolutions.forEach((resolution) => {
     const menuItem = document.createElement("div");
     menuItem.className = "vjs-quality-menu-item";
     menuItem.textContent = resolution.label;
     menuItem.dataset.id = resolution.id;
-    menuItem.dataset.height = resolution.height;
 
-    // Handle click to change quality
     menuItem.addEventListener("click", function (e) {
       e.stopPropagation();
-
-      // Update selected state in menu
-      document.querySelectorAll(".vjs-quality-menu-item").forEach((item) => {
-        item.classList.remove("selected");
-      });
+      document.querySelectorAll(".vjs-quality-menu-item").forEach((item) => item.classList.remove("selected"));
       this.classList.add("selected");
 
       try {
         if (resolution.id === "auto") {
-          // Enable ABR (automatic bitrate adaptation)
-          console.log("Setting DASH to auto quality (ABR)");
           dashPlayer.setAutoSwitchQualityFor("video", true);
         } else {
-          // Disable ABR and force specific quality
           dashPlayer.setAutoSwitchQualityFor("video", false);
-
-          // Find the quality index in the DASH player
           const videoTracks = dashPlayer.getTracksFor("video");
-          const targetTrack = videoTracks.find(
-            (track) => track.id === resolution.id
-          );
-
+          const targetTrack = videoTracks.find((track) => track.id === resolution.id);
           if (targetTrack) {
             const qualityIndex = videoTracks.indexOf(targetTrack);
-            console.log(
-              `Setting fixed DASH quality to ${resolution.label} (index: ${qualityIndex})`
-            );
             dashPlayer.setQualityFor("video", qualityIndex);
           }
         }
-
-        // Toggle menu visibility
         const menu = document.querySelector(".vjs-quality-menu");
         if (menu) menu.classList.remove("showing");
       } catch (error) {
@@ -432,8 +152,7 @@ function createDashQualityMenu(resolutions) {
 
     // Set initially selected item
     if (
-      (resolution.id === "auto" &&
-        dashPlayer.getAutoSwitchQualityFor("video")) ||
+      (resolution.id === "auto" && dashPlayer.getAutoSwitchQualityFor("video")) ||
       (resolution.id !== "auto" && !dashPlayer.getAutoSwitchQualityFor("video"))
     ) {
       menuItem.classList.add("selected");
@@ -442,7 +161,7 @@ function createDashQualityMenu(resolutions) {
     qualityMenu.appendChild(menuItem);
   });
 
-  // Add HLS option at the bottom
+  // Opción para cambiar a HLS
   const separator = document.createElement("div");
   separator.className = "vjs-quality-menu-separator";
   separator.style.borderTop = "1px solid rgba(255,255,255,0.2)";
@@ -459,11 +178,62 @@ function createDashQualityMenu(resolutions) {
   qualityMenu.appendChild(hlsItem);
 }
 
-// Function to create a manual quality selector as a fallback
-function createManualQualityControl(sources) {
-  // Quality control is handled by our custom HD button
-  console.log("Using custom HD quality control");
+// Menú de calidad para HLS
+function createHlsQualityMenu() {
+  const qualityMenu = document.querySelector(".vjs-quality-menu");
+  if (!qualityMenu) return;
+
+  qualityMenu.innerHTML = "";
+
+  const levels = window.player.qualityLevels();
+  if (!levels || levels.length === 0) return;
+
+  // Opción Auto
+  const autoItem = document.createElement("div");
+  autoItem.className = "vjs-quality-menu-item";
+  autoItem.textContent = "Auto (Adaptativo)";
+  autoItem.addEventListener("click", function () {
+    for (let i = 0; i < levels.length; i++) levels[i].enabled = true;
+    document.querySelectorAll(".vjs-quality-menu-item").forEach((item) => item.classList.remove("selected"));
+    this.classList.add("selected");
+  });
+  qualityMenu.appendChild(autoItem);
+
+  // Opciones manuales
+  for (let i = 0; i < levels.length; i++) {
+    const level = levels[i];
+    const item = document.createElement("div");
+    item.className = "vjs-quality-menu-item";
+    item.textContent = level.height ? `${level.height}p` : `${Math.round(level.bitrate/1000)}kbps`;
+    item.addEventListener("click", function () {
+      for (let j = 0; j < levels.length; j++) levels[j].enabled = (j === i);
+      document.querySelectorAll(".vjs-quality-menu-item").forEach((item) => item.classList.remove("selected"));
+      this.classList.add("selected");
+    });
+    qualityMenu.appendChild(item);
+  }
+
+  // Opción para cambiar a DASH
+  const separator = document.createElement("div");
+  separator.className = "vjs-quality-menu-separator";
+  separator.style.borderTop = "1px solid rgba(255,255,255,0.2)";
+  separator.style.margin = "5px 0";
+  qualityMenu.appendChild(separator);
+
+  const dashItem = document.createElement("div");
+  dashItem.className = "vjs-quality-menu-item";
+  dashItem.textContent = "DASH Adaptativo";
+  dashItem.addEventListener("click", function (e) {
+    e.stopPropagation();
+    changeQuality("dash");
+  });
+  qualityMenu.appendChild(dashItem);
 }
+
+// Exporta las funciones si las necesitas fuera
+window.changeQuality = changeQuality;
+window.createDashQualityMenu = createDashQualityMenu;
+window.createHlsQualityMenu = createHlsQualityMenu;
 
 // Export player functions
 window.initializeVideoPlayer = initializeVideoPlayer;
@@ -644,8 +414,65 @@ function setupRemoteControl() {
   connectWebSocket();
 }
 
-// Iniciar el control remoto cuando se cargue la página
-document.addEventListener("DOMContentLoaded", function () {
-  // Call setupRemoteControl immediately instead of with a timeout
-  setupRemoteControl();
-});
+// ...después de tu función initializeVideoPlayer() añade:
+function loadAllTextTracks() {
+  const player = window.player;
+
+  // 1) Explicaciones (metadata)
+  const expTrackEl = player.addRemoteTextTrack({
+    kind:    'metadata',
+    label:   'Explicaciones',
+    src:     config.vtt.explanations,
+    default: false
+  }, false).track;
+  expTrackEl.mode = 'hidden';
+  expTrackEl.addEventListener('load', () => {
+    config.segments.explanations = Array.from(expTrackEl.cues).map(cue => ({
+      start: cue.startTime, end: cue.endTime, text: cue.text
+    }));
+    // mostrar la explicación actual inmediatamente
+    const now = player.currentTime();
+    const active = config.segments.explanations.find(s => now >= s.start && now < s.end);
+    document.getElementById('transcriptText').textContent = active ? active.text : 'Avanza el vídeo para ver las explicaciones';
+  });
+  expTrackEl.addEventListener('cuechange', () => {
+    const cues = Array.from(expTrackEl.activeCues);
+    document.getElementById('transcriptText').textContent = cues.length ? cues[0].text : '';
+  });
+
+  // 2) Ubicaciones (metadata)
+  const locTrackEl = player.addRemoteTextTrack({
+    kind:  'metadata',
+    label: 'Ubicaciones',
+    src:   config.vtt.locations
+  }, false).track;
+  locTrackEl.mode = 'hidden';
+  locTrackEl.addEventListener('load', () => {
+    config.segments.locations = Array.from(locTrackEl.cues).map(cue => {
+      const d = JSON.parse(cue.text);
+      return {
+        start:       cue.startTime,
+        end:         cue.endTime,
+        coordinates: { lat: d.lat, lng: d.lng },
+        name:        d.name
+      };
+    });
+    // forzar primer pintado
+    updateMap(player.currentTime());
+  });
+
+  // 3) Subtítulos (por cada idioma)
+  ['es','en','ca'].forEach(lang => {
+    const cityCap = config.city.name[0].toUpperCase() + config.city.name.slice(1);
+    player.addRemoteTextTrack({
+      kind:    'subtitles',
+      srclang: lang,
+      label:   lang==='es'?'Español': lang==='en'?'English':'Català',
+      src:     `vtts/${config.city.name}/subtitulos${cityCap}${lang==='es'?'':('_'+lang)}.vtt`,
+      default: config.language.current === lang
+    }, false).track.addEventListener('cuechange', () => {
+      // aquí tu TTS o lo que necesites
+    });
+  });
+}
+

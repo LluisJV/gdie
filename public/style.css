@@ -62,35 +62,6 @@ header p {
   width: 100%;
 }
 
-/* Remote container styles */
-.remote-container {
-  display: flex;
-  align-items: center;
-  gap: var(--remote-container-gap);
-  padding: var(--remote-container-padding);
-}
-
-.room-code-container {
-  background: var(--room-code-background);
-  color: var(--room-code-color);
-  padding: var(--room-code-padding);
-  border-radius: var(--room-code-border-radius);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.room-code-container .icon {
-  font-size: 1.2rem;
-  opacity: 0.8;
-}
-
-.room-code-container .room-code {
-  font-weight: bold;
-  color: #00a8e8;
-}
-
 .container h2 {
   text-align: center;
   color: var(--secondary-color);
