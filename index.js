@@ -29,15 +29,139 @@ const server = http.createServer(app);
 // Poner los archivos estáticos en la carpeta public
 app.use(express.static("public"));
 
+// Middleware para parsear JSON
+app.use(express.json());
+
+// Configuración de la API de Gemini
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBhfBzulR5yU1kAdBeb6NIEOw0qC8PGV5U";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+// Endpoint para obtener recomendaciones
+app.post('/api/gemini/recomendacion', async (req, res) => {
+  try {
+    const { respuestas } = req.body;
+    
+    if (!respuestas) {
+      return res.status(400).json({ 
+        error: 'Se requieren respuestas para generar una recomendación' 
+      });
+    }
+
+    // Convertir las respuestas a un formato más amigable para el prompt
+    const respuestasFormateadas = Object.entries(respuestas)
+      .map(([pregunta, respuesta]) => 
+        `- A la pregunta "${pregunta}", respondió: "${respuesta}"`
+      )
+      .join("\n");
+
+    // Construir el prompt para Gemini
+    const prompt = `
+Actúa como un experto en turismo español que recomienda la ciudad ideal en España basada en las preferencias de un usuario.
+Basado en las siguientes respuestas de un cuestionario, recomienda UNA ciudad española entre Madrid, Barcelona, Valencia o Palma.
+
+Respuestas del usuario:
+${respuestasFormateadas}
+
+IMPORTANTE: Tu respuesta debe ser devuelta en un formato de objeto JSON con los campos solicitados.
+`;
+
+    console.log('Enviando solicitud a Gemini API...');
+    
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              ciudadRecomendada: {
+                type: "string",
+                description: "El nombre de la ciudad recomendada (Madrid, Barcelona, Valencia o Palma)",
+              },
+              razonamiento: {
+                type: "string",
+                description: "Una explicación breve (máximo 2 frases) de por qué has elegido esta ciudad",
+              },
+              descripcion: {
+                type: "string",
+                description: "Una descripción atractiva de la ciudad (máximo 2 frases)",
+              },
+            },
+            required: ["ciudadRecomendada", "razonamiento", "descripcion"],
+          },
+        },
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Error de la API de Gemini:', error);
+      return res.status(500).json({ 
+        error: 'Error al obtener recomendación',
+        details: error 
+      });
+    }
+
+    const data = await response.json();
+    console.log('Respuesta de Gemini recibida:', data);
+    
+    // Extraer la respuesta de Gemini
+    const respuestaGemini = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!respuestaGemini) {
+      throw new Error('Formato de respuesta inesperado de la API de Gemini');
+    }
+
+    // Intentar extraer el JSON de la respuesta
+    try {
+      // Buscar el primer { y el último } para extraer el JSON
+      const jsonStart = respuestaGemini.indexOf('{');
+      const jsonEnd = respuestaGemini.lastIndexOf('}') + 1;
+      const jsonString = respuestaGemini.substring(jsonStart, jsonEnd);
+      const resultado = JSON.parse(jsonString);
+      
+      return res.json(resultado);
+    } catch (parseError) {
+      console.error('Error al parsear la respuesta de Gemini:', parseError);
+      // Si falla el parseo, devolver la respuesta en texto plano
+      return res.json({
+        ciudadRecomendada: 'No se pudo determinar',
+        razonamiento: 'Hubo un error al procesar la respuesta',
+        descripcion: respuestaGemini
+      });
+    }
+  } catch (error) {
+    console.error('Error en el endpoint de recomendación:', error);
+    return res.status(500).json({ 
+      error: 'Error interno del servidor',
+      details: error.message 
+    });
+  }
+});
+
 // Configurar servidor WebSocket
 const wss = new WebSocketServer({
   server,
   path: "/", // Asegurar que el path sea el mismo que en el cliente
   clientTracking: true, // Habilitar tracking de clientes
   verifyClient: (info, callback) => {
+    console.log('Nueva conexión WebSocket desde:', info.req.headers['x-forwarded-for'] || info.req.socket.remoteAddress);
     // Aceptar todas las conexiones
     callback(true);
-  },
+  }
 });
 
 // Manejar conexiones WebSocket
