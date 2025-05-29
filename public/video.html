@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tour en la ciudad</title>
+    <title>Tour en la ciutat</title>
     <link rel="stylesheet" href="style.css" />
     <!-- OpenLayers CSS -->
     <link
@@ -421,14 +421,158 @@
           margin-right: 10px;
         }
       }
+
+      /* Estilos para el menú de calidad de audio */
+      .vjs-audio-quality-menu-wrapper {
+        display: flex;
+        align-items: center;
+        height: 100%;
+        margin-right: 5px;
+      }
+
+      .vjs-audio-quality-menu-button {
+        cursor: pointer;
+        background-color: transparent;
+        color: rgba(255, 255, 255, 0.8);
+        border: none;
+        padding: 0;
+        width: 3em;
+        height: 3em;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .vjs-audio-quality-menu-button:hover {
+        color: #fff;
+      }
+
+      .vjs-audio-quality-menu-button:before {
+        content: "🔊";
+        font-size: 1.3em;
+        line-height: 1;
+      }
+
+      .vjs-audio-quality-menu {
+        position: absolute;
+        bottom: 40px;
+        right: 0;
+        background-color: rgba(28, 28, 28, 0.9);
+        border-radius: 4px;
+        color: #fff;
+        overflow: hidden;
+        min-width: 180px;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+        margin-bottom: 0;
+        transform-origin: bottom right;
+        transform: scale(0.9);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        z-index: 10;
+      }
+
+      .vjs-audio-quality-menu.showing {
+        transform: scale(1);
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .vjs-audio-quality-menu-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .vjs-audio-quality-menu-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      .vjs-audio-quality-menu-item.selected {
+        color: #fff;
+        font-weight: bold;
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      .audio-quality-note {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 5px 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .protocol-switcher {
+        display: flex;
+        gap: 0.5em;
+        margin-bottom: 0.8em;
+      }
+      .protocol-switcher button {
+        padding: 0.4em 0.8em;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+      .protocol-switcher button.active {
+        background: #2c3e50;
+      }
+
+      .protocol-switcher-wrapper {
+        margin-top: 10px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .protocol-switcher select {
+        padding: 0.6em 1.2em;
+        font-size: 1rem;
+        border: none;
+        border-radius: 4px;
+        background: #3498db;
+        color: white;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .protocol-switcher select:hover {
+        background: #2980b9;
+      }
+
+      .protocol-switcher label {
+        font-size: 0.9rem;
+        color: #34495e;
+        margin-right: 10px;
+        align-self: center;
+      }
+
+      .quality-switcher {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .quality-switcher button.active {
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
     <header>
-      <h1 id="cityName">Tour en la ciudad</h1>
+      <h1 id="cityName">Tour en la ciutat</h1>
     </header>
     <div class="control-links">
       <a class="back-link" href="index.html">← Volver a la página principal</a>
+
       <div class="remote-container">
         <a class="remote-link" href="remote.html" target="_blank"
           >📱 Control Remoto</a
@@ -440,6 +584,7 @@
             <option value="blockchain">Blockchain (Theta)</option>
           </select>
         </div>
+
         <div
           id="roomCodeContainer"
           class="room-code-container"
@@ -448,23 +593,27 @@
           <span class="icon">🔗</span>
           <span>Código: <span id="roomCode" class="room-code">----</span></span>
         </div>
-      </div>
-    </div>
 
-    <div class="content-container">
-      <!-- Video container with Video.js player -->
-      <div class="video-container">
-
+        <div id="qualitySwitcher" class="quality-switcher"></div>
         <video
           id="videoPlayer"
-          class="video-js vjs-default-skin vjs-big-play-centered"
+          class="video-js"
           controls
           preload="auto"
           crossorigin="anonymous"
-          data-setup='{"fluid": true}'
         >
           Tu navegador no soporta la reproducción de video.
         </video>
+
+        <!-- NUEVO: selector desplegable justo debajo del video -->
+        <div class="protocol-switcher-wrapper">
+          <label for="protocolSwitcher" class="sr-only">Selecciona protocolo:</label>
+          <select id="protocolSwitcher" class="protocol-switcher">
+            <option value="dash">DASH</option>
+            <option value="hls">HLS</option>
+            <option value="blockchain">Blockchain</option>
+          </select>
+        </div>
       </div>
       <div class="map-container">
         <div id="map"></div>
@@ -493,6 +642,8 @@
     <script src="js/map.js"></script>
     <script src="js/tts.js"></script>
     <script src="js/language.js"></script>
+    <!-- HTTP Source Selector plugin for Video.js -->
+    <script src="https://unpkg.com/videojs-http-source-selector/dist/videojs-http-source-selector.min.js"></script>
     <script src="js/player.js"></script>
     <script src="js/main.js"></script>
     <!-- Inline script to add quality selector if plugin doesn't load properly -->
@@ -507,80 +658,61 @@
             !player.controlBar.getChild("QualitySelector")
           ) {
             console.log("Adding quality menu manually");
-            createQualityMenu();
+            //createQualityMenu();
+
+            // Crear también el menú de calidad de audio
+            //createAudioQualityMenu();
 
             // Añadir el botón TTS junto al botón de calidad después de crear el menú de calidad
             setTimeout(function () {
-              addTTSButtonNextToQuality();
+              //addTTSButtonNextToQuality();
+
+              // Añadir listener para reposicionar el botón TTS cuando se cambie la calidad
+              player.on("qualitySelected", function () {
+                console.log("Quality changed, repositioning TTS button");
+                setTimeout(function () {
+                  addTTSButtonNextToQuality();
+                }, 500);
+              });
             }, 500);
           }
         }, 1000);
 
         function createQualityMenu() {
+          // Get the player instance
           const player = videojs.getPlayer("videoPlayer");
           if (!player) return;
 
-          // Get available quality levels from the player
-          const qualityLevels = player.qualityLevels ? Array.from(player.qualityLevels()) : [];
-          
-          // Create quality menu container
+          // Check if the menu already exists
+          if (document.querySelector(".vjs-quality-menu-wrapper")) {
+            console.log("Quality menu already exists");
+            return;
+          }
+
+          console.log("Creating custom quality menu");
+
+          // Define quality options initially with just streaming options
+          const qualities = [
+            { label: "DASH Adaptativo", value: "dash" },
+            { label: "HLS Adaptativo", value: "hls" },
+          ];
+
+          // Create menu wrapper
           const menuWrapper = document.createElement("div");
           menuWrapper.className = "vjs-quality-menu-wrapper";
           menuWrapper.id = "qualityMenuWrapper";
 
           // Create button
           const button = document.createElement("button");
-          button.className = "vjs-quality-menu-button vjs-menu-button vjs-control";
-          button.innerHTML = "";
-          button.setAttribute("title", "Calidad de video");
+          button.className = "vjs-quality-menu-button";
+          button.setAttribute("title", "Cambiar calidad de video");
 
           // Create menu
           const menu = document.createElement("div");
           menu.className = "vjs-quality-menu";
 
-          // Add Auto option
-          const autoItem = document.createElement("div");
-          autoItem.className = "vjs-quality-menu-item";
-          if (!window.videoQuality || window.videoQuality === 'auto') {
-            autoItem.className += " selected";
-          }
-          autoItem.textContent = "Auto";
-          autoItem.dataset.quality = "auto";
-          autoItem.addEventListener("click", function(e) {
-            e.stopPropagation();
-            setQualityMode('auto');
-            updateSelectedItem(this);
-            toggleMenu(false);
-          });
-          menu.appendChild(autoItem);
-
-          // Add separator
-          const separator = document.createElement("div");
-          separator.className = "vjs-menu-item vjs-menu-item-separator";
-          separator.style.padding = '5px 0';
-          separator.innerHTML = '<hr style="margin: 5px 10px; border-color: rgba(255,255,255,0.2)">';
-          menu.appendChild(separator);
-
-          // Add quality options
-          const qualities = [
-            { label: "4K", value: "4k", height: 2160 },
-            { label: "1080p", value: "1080p", height: 1080 },
-            { label: "720p", value: "720p", height: 720 },
-            { label: "480p", value: "480p", height: 480 },
-            { label: "360p", value: "360p", height: 360 },
-            { label: "240p", value: "240p", height: 240 }
-          ];
-
-          // Filter available qualities based on what's in the manifest
-          const availableQualities = qualities.filter(q => {
-            return qualityLevels.some(level => level.height === q.height);
-          });
-
-          // If no quality levels detected, show default options
-          const displayQualities = availableQualities.length > 0 ? availableQualities : qualities;
-
-          // Add quality menu items
-          displayQualities.forEach((quality) => {
+          // Add menu items
+          qualities.forEach((quality) => {
             const menuItem = document.createElement("div");
             menuItem.className = "vjs-quality-menu-item";
             if (window.videoQuality === quality.value) {
@@ -588,42 +720,24 @@
             }
             menuItem.textContent = quality.label;
             menuItem.dataset.quality = quality.value;
-            menuItem.dataset.height = quality.height;
-            menuItem.addEventListener("click", function(e) {
+            menuItem.addEventListener("click", function (e) {
               e.stopPropagation();
-              setQualityMode('manual', this.dataset.height);
-              updateSelectedItem(this);
+              const qualityValue = this.dataset.quality;
+              // Call the quality change function
+              if (typeof changeQuality === "function") {
+                changeQuality(qualityValue);
+              }
+              // Update selected state
+              document
+                .querySelectorAll(".vjs-quality-menu-item")
+                .forEach((item) => {
+                  item.classList.remove("selected");
+                });
+              this.classList.add("selected");
               toggleMenu(false);
             });
             menu.appendChild(menuItem);
           });
-
-          // Function to update selected item
-          function updateSelectedItem(selectedItem) {
-            document.querySelectorAll('.vjs-quality-menu-item').forEach(item => {
-              item.classList.remove('selected');
-            });
-            selectedItem.classList.add('selected');
-          }
-
-          // Function to set quality mode
-          function setQualityMode(mode, height) {
-            if (mode === 'auto') {
-              // Enable all quality levels for auto selection
-              qualityLevels.forEach(level => {
-                level.enabled = true;
-              });
-              window.videoQuality = 'auto';
-              button.setAttribute('title', 'Calidad: Auto');
-            } else if (mode === 'manual' && height) {
-              // Set specific quality level
-              qualityLevels.forEach(level => {
-                level.enabled = (level.height === parseInt(height));
-              });
-              window.videoQuality = Array.from(qualities).find(q => q.height === parseInt(height))?.value || '';
-              button.setAttribute('title', `Calidad: ${window.videoQuality}`);
-            }
-          }
 
           // Toggle menu function
           function toggleMenu(show) {
@@ -656,6 +770,132 @@
           player.controlBar.el().insertBefore(menuWrapper, fullscreenButton);
         }
 
+        function createAudioQualityMenu() {
+          // Get the player instance
+          const player = videojs.getPlayer("videoPlayer");
+          if (!player) return;
+
+          // Check if the menu already exists
+          if (document.querySelector(".vjs-audio-quality-menu-wrapper")) {
+            console.log("Audio quality menu already exists");
+            return;
+          }
+
+          console.log("Creating audio quality menu");
+
+          // Get audio quality options
+          const audioQualities = window.getAudioSources();
+
+          // Create menu wrapper
+          const menuWrapper = document.createElement("div");
+          menuWrapper.className = "vjs-audio-quality-menu-wrapper";
+          menuWrapper.id = "audioQualityMenuWrapper";
+
+          // Create button
+          const button = document.createElement("button");
+          button.className = "vjs-audio-quality-menu-button";
+          button.setAttribute("title", "Cambiar calidad de audio");
+
+          // Create menu
+          const menu = document.createElement("div");
+          menu.className = "vjs-audio-quality-menu";
+
+          // Add menu items
+          audioQualities.forEach((quality) => {
+            const menuItem = document.createElement("div");
+            menuItem.className = "vjs-audio-quality-menu-item";
+            if (quality.selected) {
+              menuItem.className += " selected";
+            }
+            menuItem.textContent = quality.label;
+            menuItem.dataset.quality = quality.value;
+            menuItem.addEventListener("click", function (e) {
+              e.stopPropagation();
+              const qualityValue = this.dataset.quality;
+              // Call the audio quality change function
+              if (typeof changeAudioQuality === "function") {
+                changeAudioQuality(qualityValue);
+              }
+              // Update selected state
+              document
+                .querySelectorAll(".vjs-audio-quality-menu-item")
+                .forEach((item) => {
+                  item.classList.remove("selected");
+                });
+              this.classList.add("selected");
+              toggleAudioMenu(false);
+            });
+            menu.appendChild(menuItem);
+          });
+
+          // Add note about DASH requirement
+          const note = document.createElement("div");
+          note.className = "audio-quality-note";
+          note.textContent = "Disponible solo con calidad DASH";
+          menu.appendChild(note);
+
+          // Toggle menu function
+          function toggleAudioMenu(show) {
+            if (show === undefined) {
+              menu.classList.toggle("showing");
+            } else {
+              menu.classList[show ? "add" : "remove"]("showing");
+            }
+          }
+
+          // Toggle menu on button click
+          button.addEventListener("click", function (e) {
+            e.stopPropagation();
+            toggleAudioMenu();
+          });
+
+          // Hide menu when clicking outside
+          document.addEventListener("click", function () {
+            toggleAudioMenu(false);
+          });
+
+          // Add elements to DOM
+          menuWrapper.appendChild(button);
+          menuWrapper.appendChild(menu);
+
+          // Position the menu in the control bar - before fullscreen button and after quality selector
+          const qualityMenuWrapper = document.querySelector(
+            ".vjs-quality-menu-wrapper"
+          );
+
+          if (qualityMenuWrapper && qualityMenuWrapper.nextSibling) {
+            // Insert after quality menu
+            player.controlBar
+              .el()
+              .insertBefore(menuWrapper, qualityMenuWrapper.nextSibling);
+          } else {
+            // Fallback: insert before fullscreen button
+            const fullscreenButton = player.controlBar
+              .getChild("fullscreenToggle")
+              .el();
+            player.controlBar.el().insertBefore(menuWrapper, fullscreenButton);
+          }
+
+          // Show/hide the audio menu based on whether DASH is selected
+          const updateAudioMenuVisibility = function () {
+            if (config.video.currentQuality === "dash") {
+              menuWrapper.style.display = "flex";
+            } else {
+              menuWrapper.style.display = "none";
+              toggleAudioMenu(false);
+            }
+          };
+
+          // Update visibility initially
+          updateAudioMenuVisibility();
+
+          // Add listener for quality changes to update audio menu visibility
+          player.on("qualitySelected", updateAudioMenuVisibility);
+
+          // Also check every few seconds in case the listener misses an event
+          setInterval(updateAudioMenuVisibility, 2000);
+        }
+
         // Function to add TTS button next to quality button
         function addTTSButtonNextToQuality() {
           const player = videojs.getPlayer("videoPlayer");
@@ -671,6 +911,17 @@
             qualityMenuWrapper = document.getElementById("qualityMenuWrapper");
           }
 
+          // Buscar el botón de calidad de audio (colocaremos el TTS después de este)
+          let audioQualityMenuWrapper = document.querySelector(
+            ".vjs-audio-quality-menu-wrapper"
+          );
+
+          if (!audioQualityMenuWrapper) {
+            audioQualityMenuWrapper = document.getElementById(
+              "audioQualityMenuWrapper"
+            );
+          }
+
           // Comprobar si existe el botón TTS en la barra de controles
           let ttsButton = player.controlBar.getChild("TTSButton");
 
@@ -682,12 +933,39 @@
           // Creamos un nuevo botón TTS
           ttsButton = player.controlBar.addChild("TTSButton", {});
 
-          if (qualityMenuWrapper && ttsButton && ttsButton.el()) {
-            // Insertar el botón TTS después del botón de calidad
-            qualityMenuWrapper.parentNode.insertBefore(
-              ttsButton.el(),
-              qualityMenuWrapper.nextSibling
-            );
+          if (ttsButton && ttsButton.el()) {
+            // Determinar el elemento después del cual insertar el botón TTS
+            let insertAfterElement = null;
+
+            // Prioridad: insertar después del menú de audio si está visible
+            if (
+              audioQualityMenuWrapper &&
+              window.getComputedStyle(audioQualityMenuWrapper).display !==
+                "none"
+            ) {
+              insertAfterElement = audioQualityMenuWrapper;
+            }
+            // Si no, insertar después del menú de calidad de video
+            else if (qualityMenuWrapper) {
+              insertAfterElement = qualityMenuWrapper;
+            }
+
+            if (insertAfterElement && insertAfterElement.nextSibling) {
+              // Insertar el botón TTS después del elemento seleccionado
+              insertAfterElement.parentNode.insertBefore(
+                ttsButton.el(),
+                insertAfterElement.nextSibling
+              );
+            } else {
+              // Fallback: insertar antes del botón de pantalla completa
+              const fullscreenButton = player.controlBar
+                .getChild("fullscreenToggle")
+                .el();
+              fullscreenButton.parentNode.insertBefore(
+                ttsButton.el(),
+                fullscreenButton
+              );
+            }
 
             // Añadir clase para estilo especial cuando está junto al botón de calidad
             ttsButton.addClass("next-to-quality");
@@ -744,11 +1022,11 @@
             }
 
             console.log(
-              "TTS button successfully positioned next to quality button"
+              "TTS button successfully positioned next to quality buttons"
             );
           } else {
             console.error(
-              "Could not find quality button or TTS button to position"
+              "Could not find quality buttons or TTS button to position"
             );
           }
         }
@@ -768,12 +1046,6 @@
 
           socket.addEventListener("open", function (event) {
             console.log("WebSocket connection established!");
-            // Send registration message to identify as video client
-            console.log("Sending registration message as video client");
-            socket.send(JSON.stringify({
-              type: "register",
-              client: "video"
-            }));
           });
 
           socket.addEventListener("error", function (event) {
@@ -786,27 +1058,6 @@
               const data = JSON.parse(event.data);
               if (data.type === "room") {
                 console.log("Room code received:", data.roomCode);
-                // Wait for DOM to be fully loaded before updating
-                if (document.readyState === 'complete') {
-                  // Show the room code in the UI
-                  const roomCodeContainer = document.getElementById('roomCodeContainer');
-                  const roomCodeElement = document.getElementById('roomCode');
-                  if (roomCodeContainer && roomCodeElement) {
-                    roomCodeElement.textContent = data.roomCode;
-                    roomCodeContainer.style.display = 'flex';
-                  }
-                } else {
-                  // DOM is not ready yet, wait for it
-                  console.log("DOM not ready, waiting for load event");
-                  window.addEventListener('load', function() {
-                    const roomCodeContainer = document.getElementById('roomCodeContainer');
-                    const roomCodeElement = document.getElementById('roomCode');
-                    if (roomCodeContainer && roomCodeElement) {
-                      roomCodeElement.textContent = data.roomCode;
-                      roomCodeContainer.style.display = 'flex';
-                    }
-                  });
-                }
               }
             } catch (e) {
               console.error("Error parsing WebSocket message:", e);

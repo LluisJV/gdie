@@ -1,13 +1,15 @@
-// js/config.js
-
 // Configuration and global variables
 const config = {
-  // Video related variables
   video: {
     // DASH and HLS manifest URLs (se rellenan en initializeConfig)
     dashUrl: "",
     hlsUrl: "",
+
     title: "Tour en la ciudad",
+  },
+
+  audio: {
+    currentQuality: "high", // default to high quality (320k)
   },
 
   // VTT files
@@ -60,39 +62,51 @@ const config = {
 // Function to initialize configuration from URL params
 function initializeConfig() {
   const params = new URLSearchParams(window.location.search);
-  // Ciudad en minúsculas, p.ej. "barcelona"
   const city = (params.get("city") || "madrid").toLowerCase();
-
-  // Store the current city
   config.city.name = city;
+  config.video.currentQuality = params.get("quality") || "dash";
+  const cityCap = city.charAt(0).toUpperCase() + city.slice(1);
 
   // Construye las URLs DASH y HLS usando el nombre de la ciudad
   const baseUrl = `https://gdie2504.ltim.uib.es/videos/${city}/out/`;
   config.video.dashUrl = `${baseUrl}manifest.mpd`;
   config.video.hlsUrl = `${baseUrl}manifest.m3u8`;
 
-  // Rutas de los VTT
-  const cityCap = city.charAt(0).toUpperCase() + city.slice(1);
+
+  // VTT y título
   config.vtt.explanations = `vtts/${city}/explicaciones${cityCap}.vtt`;
   config.vtt.subtitles = `vtts/${city}/subtitulos${cityCap}.vtt`;
   config.vtt.locations = `vtts/${city}/ubicaciones${cityCap}.vtt`;
-
-  // Título de la página
   config.video.title = `Tour en ${cityCap}`;
   document.getElementById("cityName").textContent = config.video.title;
 
-  // Centro del mapa según ciudad
-  if (config.cityCoordinates[city]) {
+  if (config.cityCoordinates[city])
     config.map.center = config.cityCoordinates[city];
-  }
 
-  // Si no hay quality en la URL, redirigimos solo para incluir ciudad
-  if (!params.get("city")) {
-    const newURL = `${window.location.pathname}?city=${city}`;
+  // Redirige si falta quality
+  if (!params.get("quality")) {
+    const newURL = `${window.location.pathname}?city=${city}&quality=${config.video.currentQuality}`;
     window.location.replace(newURL);
   }
+}
+
+// Función para obtener las calidades de audio
+function getAudioSources() {
+  return [
+    {
+      label: "Alta Calidad (320kbps)",
+      value: "high",
+      selected: config.audio.currentQuality === "high",
+    },
+    {
+      label: "Calidad Estándar (128kbps)",
+      value: "standard",
+      selected: config.audio.currentQuality === "standard",
+    },
+  ];
 }
 
 // Export configuration and functions
 window.config = config;
 window.initializeConfig = initializeConfig;
+window.getAudioSources = getAudioSources;

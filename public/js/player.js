@@ -1,36 +1,105 @@
 // Video player functionality
 
-// Initialize the video player with Video.js
-function initializeVideoPlayer() {
-  // 1) Registro botón TTS
+// Iniciar el control remoto cuando se cargue la página
+document.addEventListener("DOMContentLoaded", function () {
+  initializeConfig();        // → rellena config.video.url (y redirige si falta ?quality)
+  setupProtocolSwitcher();
   registerTTSButtonComponent();
+  initializeVideoPlayer();   // → crea el player y hace player.src(config.video.url)
+  loadVTTContent();
+  setupRemoteControl();      // → WS, ya con player inicializado
+});
 
-  // 2) Inicialización Video.js
-  window.player = videojs("videoPlayer", {
+// 1) Registrar el botón de Fuente (sólo una vez, antes de crear el player)
+const MenuButton = videojs.getComponent('MenuButton');
+const MenuItem   = videojs.getComponent('MenuItem');
+
+class ProtocolMenuButton extends MenuButton {
+  constructor(player, options) {
+    super(player, options);
+    this.controlText('Fuente');
+  }
+  buildCSSClass() {
+    return `vjs-menu-button vjs-menu-button-popup vjs-icon-hd ${super.buildCSSClass()}`;
+  }
+  createItems() {
+    return (window.videoSources || []).map(srcObj => {
+      const item = new MenuItem(this.player_, {
+        label:      srcObj.label,
+        selectable: true,
+        selected:   this.player_.currentSource().type === srcObj.type
+      });
+      item.on('click', () => {
+        // Solo cambia el protocolo, mantiene calidad en "auto"
+        this.player_.src(srcObj);
+        this.player_.play().catch(() => {});
+      });
+      return item;
+    });
+  }
+}
+console.log('ProtocolMenuButton:', videojs.getComponent('ProtocolMenuButton'));
+videojs.registerComponent('ProtocolMenuButton', ProtocolMenuButton);
+
+// 2) Construye videoSources dinámicamente según la ciudad
+function buildVideoSources() {
+  const city = config.city.name.toLowerCase();
+  const base = `https://gdie2504.ltim.uib.es/videos/${city}/out/manifest`;
+  const sources = [
+    { label: 'DASH Adaptativo', src: `${base}.mpd`,   type: 'application/dash+xml' },
+    { label: 'HLS Adaptativo',  src: `${base}.m3u8`, type: 'application/x-mpegURL' }
+  ];
+  if (city === 'madrid') {
+    sources.push({
+      label: 'Blockchain',
+      src:   'https://media.thetavideoapi.com/org_q9ej3ubwdj5hx8k5er8vufksb6jg/srvacc_azhbaxmcf2eeswt0ky23ifjmc/video_u3bvycgd7dtvbgdy9xzpwn0nk2/master.m3u8',
+      type:  'application/x-mpegURL'
+    });
+  }
+  console.log('videoSources:', sources); // Para depurar
+  window.videoSources = sources;
+}
+
+// 3) Inicializa el player con el botón “Fuente” y las fuentes
+function initializeVideoPlayer(initialProtocol) {
+  buildVideoSources();
+
+  if (window.player && window.player.dispose) {
+    window.player.dispose();
+  }
+
+  window.player = videojs('videoPlayer', {
     controls: true,
-    autoplay: false,
-    preload: "auto",
-    fluid: true,
-    playbackRates: [0.5, 1, 1.5, 2],
+    preload: 'auto',
+    html5: { vhs: { enableLowInitialPlaylist: true } },
+    sources: window.videoSources,
     controlBar: {
       children: [
-        "playToggle",
-        "volumePanel",
-        "progressControl",
-        "currentTimeDisplay",
-        "timeDivider",
-        "durationDisplay",
-        "TTSButton",
-        "subtitlesButton",
-        "fullscreenToggle",
-      ],
+        'playToggle',
+        'volumePanel',
+        'progressControl',
+        'currentTimeDisplay',
+        'timeDivider',
+        'durationDisplay',
+        'SubsCapsButton',
+        'httpSourceSelector', // SOLO este para calidad
+        'TTSButton',
+        'fullscreenToggle'
+      ]
     },
     plugins: {
-      qualitySelector: false,
-    },
+      httpSourceSelector: {
+        default: initialProtocol || config.video.currentQuality,
+        dynamicLabel: true,
+        vhs: true
+      }
+    }
   });
 
-  loadChaptersVTT();
+  window.player.ready(() => {
+    if (typeof window.player.httpSourceSelector === 'function') {
+      window.player.httpSourceSelector();
+    }
 
   // Función para cambiar el formato
   function changeVideoFormat(format) {
@@ -170,53 +239,90 @@ function initializeVideoPlayer() {
       }
     });
 
-    // 4) TextTracks (subtítulos)
-    const existing = window.player.remoteTextTracks();
-    Array.from(existing).forEach((t) => window.player.removeRemoteTextTrack(t));
+function setupProtocolSwitcher() {
+  const switcher = document.getElementById('protocolSwitcher');
+  if (!switcher) return;
 
-    const cityCap =
-      config.city.name.charAt(0).toUpperCase() + config.city.name.slice(1);
-    // Español
-    window.player.addRemoteTextTrack(
-      {
-        kind: "subtitles",
-        srclang: "es",
-        label: "Español",
-        src: `vtts/${config.city.name}/subtitulos${cityCap}.vtt`,
-        default: config.language.current === "es",
-      },
-      false
-    );
-    // Inglés
-    window.player.addRemoteTextTrack(
-      {
-        kind: "subtitles",
-        srclang: "en",
-        label: "English",
-        src: `vtts/${config.city.name}/subtitulos${cityCap}_en.vtt`,
-      },
-      false
-    );
-    // Català
-    window.player.addRemoteTextTrack(
-      {
-        kind: "subtitles",
-        srclang: "ca",
-        label: "Català",
-        src: `vtts/${config.city.name}/subtitulos${cityCap}_ca.vtt`,
-      },
-      false
-    );
+  // 1) Oculta "Blockchain" si no es Madrid
+  if (config.city.name.toLowerCase() !== 'madrid') {
+    const opt = switcher.querySelector('option[value="blockchain"]');
+    if (opt) opt.remove();
+  }
 
-    // 5) Configuración de calidad automática
-    window.player.qualityLevels();
-    
-    // Opcional: Mostrar la calidad actual en consola cuando cambie
-    window.player.tech_.on('ratechange', function() {
-      const qualityLevels = window.player.qualityLevels();
-      const currentLevel = qualityLevels[qualityLevels.selectedIndex];
-      if (currentLevel) {
-        console.log('Current quality:', currentLevel.height + 'p');
+  // 2) Maneja la selección
+  switcher.addEventListener('change', (e) => {
+    const proto = e.target.value;
+    initializeVideoPlayer(proto);
+  });
+
+  // 3) Marca por defecto el protocolo actual
+  switcher.value = initialProtocol || config.video.currentQuality || 'dash';
+}
+
+
+// Cambiar calidad de video (DASH/HLS)
+function changeQuality(label) {
+  const isHls = label === 'hls';
+  window.player.src({
+    src: `https://gdie2504.ltim.uib.es/videos/${config.city.name}/out/manifest.${isHls ? 'm3u8' : 'mpd'}`,
+    type: isHls ? 'application/x-mpegURL' : 'application/dash+xml'
+  });
+  window.player.play().catch(() => {});
+
+  // Refresca el menú si está abierto
+  const menu = document.querySelector('.vjs-quality-menu.showing');
+  if (menu) {
+    if (isHls) createHlsQualityMenu();
+    else       createDashQualityMenu(getDashResolutions());
+  }
+}
+
+// Menú de calidad para DASH
+function createDashQualityMenu(resolutions) {
+  const qualityMenu = document.querySelector(".vjs-quality-menu");
+  if (!qualityMenu) return;
+
+  qualityMenu.innerHTML = "";
+
+  // Encabezado DASH
+  const dashHeader = document.createElement("div");
+  dashHeader.className = "vjs-quality-menu-header";
+  dashHeader.textContent = "DASH (Adaptativo)";
+  dashHeader.style.fontWeight = "bold";
+  dashHeader.style.padding = "6px 12px";
+  qualityMenu.appendChild(dashHeader);
+
+  const player = videojs.getPlayer("videoPlayer");
+  if (!player || !player.dash || !player.dash.mediaPlayer) return;
+  const dashPlayer = player.dash.mediaPlayer;
+
+  resolutions.forEach((resolution) => {
+    const menuItem = document.createElement("div");
+    menuItem.className = "vjs-quality-menu-item";
+    menuItem.textContent = resolution.label;
+    menuItem.dataset.id = resolution.id;
+
+    menuItem.addEventListener("click", function (e) {
+      e.stopPropagation();
+      document.querySelectorAll(".vjs-quality-menu-item").forEach((item) => item.classList.remove("selected"));
+      this.classList.add("selected");
+
+      try {
+        if (resolution.id === "auto") {
+          dashPlayer.setAutoSwitchQualityFor("video", true);
+        } else {
+          dashPlayer.setAutoSwitchQualityFor("video", false);
+          const videoTracks = dashPlayer.getTracksFor("video");
+          const targetTrack = videoTracks.find((track) => track.id === resolution.id);
+          if (targetTrack) {
+            const qualityIndex = videoTracks.indexOf(targetTrack);
+            dashPlayer.setQualityFor("video", qualityIndex);
+          }
+        }
+        const menu = document.querySelector(".vjs-quality-menu");
+        if (menu) menu.classList.remove("showing");
+      } catch (error) {
+        console.error("Error changing DASH quality:", error);
       }
     });
 
@@ -243,46 +349,119 @@ function initializeVideoPlayer() {
         },
         false
       );
+
     }
 
-    setSubtitles(config.language.current);
-    loadVTTContent();
+    qualityMenu.appendChild(menuItem);
   });
 
-  // 7) Eventos timeupdate y cambio de pista
-  window.player.on("timeupdate", () => {
-    const t = window.player.currentTime();
-    if (config.segments.explanations.length) updateExplanation(t);
-    updateMap(t);
-  });
+  // Separador
+  const separator = document.createElement("div");
+  separator.className = "vjs-quality-menu-separator";
+  separator.style.borderTop = "1px solid rgba(255,255,255,0.2)";
+  separator.style.margin = "5px 0";
+  qualityMenu.appendChild(separator);
 
-  window.player.on("texttrackchange", () => {
-    const tracks = window.player.textTracks();
-    for (let i = 0; i < tracks.length; i++) {
-      const tr = tracks[i];
-      if (tr.kind === "subtitles" && tr.mode === "showing") {
-        config.language.current = tr.language;
-        const ttsB = window.player.controlBar.getChild("TTSButton");
-        if (ttsB) ttsB.updateButtonState();
-        setExplanations(tr.language);
-        tr.removeEventListener("cuechange", handleSubtitleCueChange);
-        tr.addEventListener("cuechange", handleSubtitleCueChange);
-        break;
-      }
-    }
+  // Botón para cambiar a HLS
+  const hlsItem = document.createElement("div");
+  hlsItem.className = "vjs-quality-menu-item";
+  hlsItem.textContent = "Cambiar a HLS";
+  hlsItem.style.fontWeight = "bold";
+  hlsItem.addEventListener("click", function (e) {
+    e.stopPropagation();
+    changeQuality("hls");
   });
-
-  function handleSubtitleCueChange() {
-    if (config.tts.enabled && this.activeCues.length) {
-      speakSubtitle(this.activeCues[0].text);
-    }
-  }
+  qualityMenu.appendChild(hlsItem);
 }
+
+function createHlsQualityMenu() {
+  const qualityMenu = document.querySelector(".vjs-quality-menu");
+  if (!qualityMenu) return;
+
+  qualityMenu.innerHTML = "";
+
+  // Encabezado HLS
+  const hlsHeader = document.createElement("div");
+  hlsHeader.className = "vjs-quality-menu-header";
+  hlsHeader.textContent = "HLS (Adaptativo)";
+  hlsHeader.style.fontWeight = "bold";
+  hlsHeader.style.padding = "6px 12px";
+  qualityMenu.appendChild(hlsHeader);
+
+  const levels = window.player.qualityLevels();
+  if (!levels || levels.length === 0) return;
+
+  // Opción Auto
+  const autoItem = document.createElement("div");
+  autoItem.className = "vjs-quality-menu-item";
+  autoItem.textContent = "Auto (Adaptativo)";
+  autoItem.addEventListener("click", function () {
+    for (let i = 0; i < levels.length; i++) levels[i].enabled = true;
+    document.querySelectorAll(".vjs-quality-menu-item").forEach((item) => item.classList.remove("selected"));
+    this.classList.add("selected");
+  });
+  qualityMenu.appendChild(autoItem);
+
+  // Opciones manuales
+  for (let i = 0; i < levels.length; i++) {
+    const level = levels[i];
+    const item = document.createElement("div");
+    item.className = "vjs-quality-menu-item";
+    item.textContent = level.height ? `${level.height}p` : `${Math.round(level.bitrate/1000)}kbps`;
+    item.addEventListener("click", function () {
+      for (let j = 0; j < levels.length; j++) levels[j].enabled = (j === i);
+      document.querySelectorAll(".vjs-quality-menu-item").forEach((item) => item.classList.remove("selected"));
+      this.classList.add("selected");
+    });
+    qualityMenu.appendChild(item);
+  }
+
+  // Separador
+  const separator = document.createElement("div");
+  separator.className = "vjs-quality-menu-separator";
+  separator.style.borderTop = "1px solid rgba(255,255,255,0.2)";
+  separator.style.margin = "5px 0";
+  qualityMenu.appendChild(separator);
+
+  // Botón para cambiar a DASH
+  const dashItem = document.createElement("div");
+  dashItem.className = "vjs-quality-menu-item";
+  dashItem.textContent = "Cambiar a DASH";
+  dashItem.style.fontWeight = "bold";
+  dashItem.addEventListener("click", function (e) {
+    e.stopPropagation();
+    changeQuality("dash");
+  });
+  qualityMenu.appendChild(dashItem);
+}
+
+// Añade esta función para obtener las resoluciones DASH
+function getDashResolutions() {
+  const player = videojs.getPlayer('videoPlayer');
+  if (!player || !player.dash || !player.dash.mediaPlayer) return [];
+  const dashPlayer = player.dash.mediaPlayer;
+  const videoTracks = dashPlayer.getTracksFor('video');
+  const list = [];
+  list.push({ label: 'Auto (Adaptativo)', id: 'auto' });
+  videoTracks.forEach(track => {
+    list.push({
+      label: track.height ? `${track.height}p` : `${Math.round(track.bitrate/1000)} kbps`,
+      id: track.id
+    });
+  });
+  return list;
+}
+
+// Exporta las funciones si las necesitas fuera
+window.changeQuality = changeQuality;
+window.createDashQualityMenu = createDashQualityMenu;
+window.createHlsQualityMenu = createHlsQualityMenu;
 
 // Export player functions
 window.initializeVideoPlayer = initializeVideoPlayer;
 window.createManualQualityControl = createManualQualityControl;
 window.setupRemoteControl = setupRemoteControl;
+window.createDashQualityMenu = createDashQualityMenu;
 
 // Implementación del WebSocket para control remoto
 function setupRemoteControl() {
@@ -457,8 +636,308 @@ function setupRemoteControl() {
   connectWebSocket();
 }
 
-// Iniciar el control remoto cuando se cargue la página
-document.addEventListener("DOMContentLoaded", function () {
-  // Call setupRemoteControl immediately instead of with a timeout
-  setupRemoteControl();
-});
+// ...después de tu función initializeVideoPlayer() añade:
+function loadAllTextTracks() {
+  const player = window.player;
+
+  // 1) Explicaciones (metadata)
+  const expTrackEl = player.addRemoteTextTrack({
+    kind:    'metadata',
+    label:   'Explicaciones',
+    src:     config.vtt.explanations,
+    default: false
+  }, false).track;
+  expTrackEl.mode = 'hidden';
+  expTrackEl.addEventListener('load', () => {
+    config.segments.explanations = Array.from(expTrackEl.cues).map(cue => ({
+      start: cue.startTime, end: cue.endTime, text: cue.text
+    }));
+    // mostrar la explicación actual inmediatamente
+    const now = player.currentTime();
+    const active = config.segments.explanations.find(s => now >= s.start && now < s.end);
+    document.getElementById('transcriptText').textContent = active ? active.text : 'Avanza el vídeo para ver las explicaciones';
+  });
+  expTrackEl.addEventListener('cuechange', () => {
+    const cues = Array.from(expTrackEl.activeCues);
+    document.getElementById('transcriptText').textContent = cues.length ? cues[0].text : '';
+  });
+
+  // 2) Ubicaciones (metadata)
+  const locTrackEl = player.addRemoteTextTrack({
+    kind:  'metadata',
+    label: 'Ubicaciones',
+    src:   config.vtt.locations
+  }, false).track;
+  locTrackEl.mode = 'hidden';
+  locTrackEl.addEventListener('load', () => {
+    config.segments.locations = Array.from(locTrackEl.cues).map(cue => {
+      const d = JSON.parse(cue.text);
+      return {
+        start:       cue.startTime,
+        end:         cue.endTime,
+        coordinates: { lat: d.lat, lng: d.lng },
+        name:        d.name
+      };
+    });
+    // forzar primer pintado
+    updateMap(player.currentTime());
+  });
+
+  // 3) Subtítulos (por cada idioma)
+  ['es','en','ca'].forEach(lang => {
+    const cityCap = config.city.name[0].toUpperCase() + config.city.name.slice(1);
+    player.addRemoteTextTrack({
+      kind:    'subtitles',
+      srclang: lang,
+      label:   lang==='es'?'Español': lang==='en'?'English':'Català',
+      src:     `vtts/${config.city.name}/subtitulos${cityCap}${lang==='es'?'':('_'+lang)}.vtt`,
+      default: config.language.current === lang
+    }, false).track.addEventListener('cuechange', () => {
+      // aquí tu TTS o lo que necesites
+    });
+  });
+}
+
+// Quality menu button component
+const Button = videojs.getComponent('Button');
+
+class QualityMenuButton extends Button {
+  constructor(player, options) {
+    super(player, options);
+    this.controlText('Calidad');
+    this.addClass('vjs-quality-button');
+    this.on('click', this.showQualityMenu);
+  }
+
+  showQualityMenu() {
+    const srcType = this.player().currentSource().type;
+    if (srcType === 'application/dash+xml') {
+      createDashQualityMenu(getDashResolutions());
+    } else {
+      createHlsQualityMenu();
+    }
+    const menu = document.querySelector('.vjs-quality-menu');
+    if (menu) menu.classList.add('showing');
+  }
+}
+videojs.registerComponent('QualityMenuButton', QualityMenuButton);
+
+// ...antes de initializeVideoPlayer, registra todos los componentes personalizados:
+videojs.registerComponent('SubsCapsButton', videojs.getComponent('SubsCapsButton'));
+videojs.registerComponent('ProtocolMenuButton', ProtocolMenuButton);
+registerTTSButtonComponent(); // Si tu función ya lo hace, no repitas
+
+// ...en tu función initializeVideoPlayer:
+function initializeVideoPlayer() {
+  buildVideoSources();
+
+  window.player = videojs('videoPlayer', {
+    controls: true,
+    preload: 'auto',
+    html5: { vhs: { enableLowInitialPlaylist: true } },
+    controlBar: {
+      // ¡Incluye aquí TODOS los botones que quieres que persistan!
+      children: [
+        'playToggle',
+        'volumePanel',
+        'progressControl',
+        'currentTimeDisplay',
+        'timeDivider',
+        'durationDisplay',
+        'SubsCapsButton',      // Botón de subtítulos nativo
+        // 'ProtocolMenuButton', // Si usas el externo, puedes quitarlo
+        'HttpSourceSelector',  // Botón de calidad oficial (plugin)
+        'TTSButton',           // Tu botón TTS
+        'fullscreenToggle'
+      ]
+    },
+    plugins: {
+      httpSourceSelector: {
+        default: 'auto',
+        dynamicLabel: true,
+        vhs: true
+      }
+    }
+  });
+
+  window.player.src(window.videoSources);
+
+  // Ya NO necesitas reinyectar botones en techreset/sourcechanged
+  // Mantén solo la recarga de pistas/subtítulos:
+  window.player.ready(() => {
+    if (typeof window.player.httpSourceSelector === 'function') {
+      window.player.httpSourceSelector();
+    }
+
+    // 1) Cargar pistas metadata y subtítulos
+    loadAllTextTracks();
+
+    // 2) Renderizar capítulos (ahora sí, ya existen las cues)
+    loadVTTContent();
+
+    // 3) Actualizar mapa en cada avance del vídeo
+    window.player.on('timeupdate', () => {
+      updateMap(window.player.currentTime());
+    });
+
+    // 4) Inicializar control remoto y switcher de protocolo
+    setupRemoteControl();
+    setupProtocolSwitcher();
+  });
+
+  setupProtocolSwitcher();
+}
+
+// Estilos CSS para el menú de calidad
+const style = document.createElement('style');
+style.textContent = `
+.vjs-quality-menu {
+  position: absolute;
+  bottom: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  border-radius: 4px;
+  display: none;
+  z-index: 1000;
+}
+.vjs-quality-menu.showing {
+  display: block;
+}
+`;
+document.head.appendChild(style);
+
+// Quality switcher setup
+function setupQualitySwitcher() {
+  const switcher = document.getElementById('qualitySwitcher');
+  if (!switcher) return;
+
+  // Limpia el switcher
+  switcher.innerHTML = '';
+
+  // Detecta protocolo actual
+  const isDash = window.player.currentSource().type === 'application/dash+xml';
+  let qualities = [];
+
+  if (isDash && window.player.dash && window.player.dash.mediaPlayer) {
+    // DASH: usa getDashResolutions()
+    qualities = getDashResolutions().filter(q => q.id !== 'auto');
+    // Añade opción Auto
+    qualities.unshift({ label: 'Auto', id: 'auto' });
+  } else if (window.player.qualityLevels) {
+    // HLS: usa qualityLevels()
+    const levels = window.player.qualityLevels();
+    qualities = [{ label: 'Auto', id: 'auto' }];
+    for (let i = 0; i < levels.length; i++) {
+      if (levels[i].height) {
+        qualities.push({ label: `${levels[i].height}p`, id: levels[i].height });
+      }
+    }
+  }
+
+  // Crea los botones
+  qualities.forEach(q => {
+    const btn = document.createElement('button');
+    btn.textContent = q.label;
+    btn.setAttribute('data-quality', q.id);
+    switcher.appendChild(btn);
+  });
+
+  // Marca activo el primero por defecto
+  if (switcher.firstChild) switcher.firstChild.classList.add('active');
+
+  // Añade manejadores
+  switcher.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switcher.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const q = btn.getAttribute('data-quality');
+      if (q === 'auto') {
+        if (isDash && window.player.dash) {
+          window.player.dash.mediaPlayer.setAutoSwitchQualityFor('video', true);
+        } else if (window.player.qualityLevels) {
+          window.player.qualityLevels().forEach(l => l.enabled = true);
+        }
+      } else {
+        if (isDash && window.player.dash) {
+          window.player.dash.mediaPlayer.setAutoSwitchQualityFor('video', false);
+          const tracks = window.player.dash.mediaPlayer.getTracksFor('video');
+          const track = tracks.find(t => t.height == parseInt(q,10));
+          if (track) {
+            const idx = tracks.indexOf(track);
+            window.player.dash.mediaPlayer.setQualityFor('video', idx);
+          }
+        } else if (window.player.qualityLevels) {
+          const levels = window.player.qualityLevels();
+          levels.forEach((l, i) => l.enabled = (l.height == parseInt(q,10)));
+        }
+      }
+    });
+  });
+}
+
+function buildQualitySwitcherButtons() {
+  const container = document.getElementById('qualitySwitcher');
+  if (!container) return;
+  container.innerHTML = '';
+
+  let items = [];
+  // DASH
+  if (window.player.dash && window.player.dash.mediaPlayer) {
+    items = getDashResolutions();
+  }
+  // HLS
+  else if (window.player.qualityLevels) {
+    const levels = window.player.qualityLevels();
+    items = [{ label: 'Auto', id: 'auto' }]
+      .concat(
+        Array.from(levels).map(l => ({
+          label:  l.height ? `${l.height}p` : `${Math.round(l.bitrate/1000)}kbps`,
+          id:     l.height || l.bitrate
+        }))
+      );
+  }
+
+  items.forEach(({ label, id }) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.dataset.quality = id;
+    container.appendChild(btn);
+  });
+
+  setupQualitySwitcherListeners();
+}
+
+function setupQualitySwitcherListeners() {
+  const switcher = document.getElementById('qualitySwitcher');
+  if (!switcher) return;
+  switcher.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => {
+      switcher.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const q = btn.dataset.quality;
+      // Auto
+      if (q === 'auto') {
+        if (window.player.dash && window.player.dash.mediaPlayer) {
+          window.player.dash.mediaPlayer.setAutoSwitchQualityFor('video', true);
+        } else if (window.player.qualityLevels) {
+          window.player.qualityLevels().forEach(l => l.enabled = true);
+        }
+      }
+      // Manual
+      else {
+        if (window.player.dash && window.player.dash.mediaPlayer) {
+          const mp = window.player.dash.mediaPlayer;
+          mp.setAutoSwitchQualityFor('video', false);
+          const track = mp.getTracksFor('video').find(t => String(t.height || t.bitrate) === q);
+          if (track) mp.setQualityFor('video', mp.getTracksFor('video').indexOf(track));
+        } else if (window.player.qualityLevels) {
+          window.player.qualityLevels().forEach(l => {
+            l.enabled = String(l.height || l.bitrate) === q;
+          });
+        }
+      }
+    };
+  });
+}
+
