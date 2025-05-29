@@ -209,6 +209,67 @@
         transform: translateX(5px);
       }
 
+      /* Control links container */
+      .control-links {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin: 10px 0;
+      }
+
+      /* Remote container styles */
+      .remote-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 38px; /* Altura fija para mantener la alineación */
+      }
+
+      /* Format selector styles */
+      .format-selector {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        height: 100%;
+      }
+      
+      .format-selector .format-select {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #555;
+        background-color: #333;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      
+      .format-selector .format-select:focus {
+        outline: none;
+        border-color: #00a8ff;
+      }
+      
+      .remote-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 0 12px;
+        background-color: #333;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: background-color 0.2s;
+        box-sizing: border-box;
+      }
+      
+      .remote-link:hover {
+        background-color: #444;
+      }
+
       .chapter-button {
         display: flex;
         align-items: center;
@@ -372,6 +433,13 @@
         <a class="remote-link" href="remote.html" target="_blank"
           >📱 Control Remoto</a
         >
+        <div class="format-selector">
+          <select id="streamFormat" class="format-select">
+            <option value="dash" selected>DASH</option>
+            <option value="hls">HLS</option>
+            <option value="blockchain">Blockchain (Theta)</option>
+          </select>
+        </div>
         <div
           id="roomCodeContainer"
           class="room-code-container"

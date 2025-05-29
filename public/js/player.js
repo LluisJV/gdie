@@ -32,26 +32,69 @@ function initializeVideoPlayer() {
 
   loadChaptersVTT();
 
-  window.player.ready(function () {
-    console.log("Video.js player is ready");
+  // Función para cambiar el formato
+  function changeVideoFormat(format) {
+    console.log('Cambiando a formato:', format.toUpperCase());
+    
+    // Pause current playback
+    const wasPaused = window.player.paused();
+    const currentTime = window.player.currentTime();
+    
+    // Cargar la nueva fuente
+    loadVideoSource(format);
+    
+    // Restaurar el estado de reproducción
+    window.player.one('loadedmetadata', function() {
+      console.log('Fuente cargada, restaurando reproducción...');
+      window.player.currentTime(currentTime);
+      if (!wasPaused) {
+        window.player.play().catch(e => console.error('Error al reanudar la reproducción:', e));
+      }
+    });
+  }
 
-    // 3) Configuración de streaming adaptativo con selección de calidad
-    const dashSource = {
-      src: config.video.dashUrl,
-      type: 'application/dash+xml',
-      keySystemOptions: [
-        {
-          name: 'com.widevine.alpha',
-          options: { 'com.widevine.alpha': { persistentState: 'required' } }
-        }
-      ]
-    };
+  // Format selector functionality
+  const formatSelector = document.getElementById('streamFormat');
+  if (formatSelector) {
+    formatSelector.addEventListener('change', function() {
+      changeVideoFormat(this.value);
+    });
+  }
 
-    const hlsSource = {
-      src: config.video.hlsUrl,
-      type: 'application/x-mpegURL',
-      withCredentials: false
-    };
+  // Función para cargar la fuente de video
+  function loadVideoSource(format) {
+    console.log('Cargando fuente:', format);
+    
+    let source;
+    
+    switch(format) {
+      case 'dash':
+        source = {
+          src: config.video.dashUrl,
+          type: 'application/dash+xml',
+          keySystemOptions: [{
+            name: 'com.widevine.alpha',
+            options: { 'com.widevine.alpha': { persistentState: 'required' } }
+          }]
+        };
+        break;
+        
+      case 'blockchain':
+        source = {
+          src: 'https://media.thetavideoapi.com/org_q9ej3ubwdj5hx8k5er8vufksb6jg/srvacc_azhbaxmcf2eeswt0ky23ifjmc/video_u3bvycgd7dtvbgdy9xzpwn0nk2/master.m3u8',
+          type: 'application/x-mpegURL',
+          withCredentials: false
+        };
+        break;
+        
+      case 'hls':
+      default:
+        source = {
+          src: config.video.hlsUrl,
+          type: 'application/x-mpegURL',
+          withCredentials: false
+        };
+    }
 
     // Configuración del reproductor para streaming adaptativo
     const playerOptions = {
@@ -60,15 +103,17 @@ function initializeVideoPlayer() {
           enableLowInitialPlaylist: true,
           smoothQualityChange: true,
           overrideNative: !videojs.browser.IS_ANY_SAFARI,
-          limitRenditionByPlayerDimensions: false // Desactivar la limitación automática de calidad
+          limitRenditionByPlayerDimensions: false
         }
       }
     };
 
     // Aplicar configuración al reproductor
-    console.log('Configurando fuentes de video...');
-    console.log('Fuente DASH:', config.video.dashUrl);
-    console.log('Fuente HLS:', config.video.hlsUrl);
+    console.log('Configurando fuente de video...');
+    console.log('URL:', format === 'dash' ? config.video.dashUrl : config.video.hlsUrl);
+    
+    // Cargar la fuente seleccionada
+    window.player.src(source);
     
     // Configurar manejadores para rastrear la fuente
     window.player.one('loadstart', function() {
@@ -90,9 +135,18 @@ function initializeVideoPlayer() {
         console.log('Tipo de fuente no reconocido');
       }
     });
+  }
+
+  // Inicializar el reproductor
+  window.player.ready(function () {
+    console.log("Video.js player is ready");
     
-    window.player.src([dashSource, hlsSource]);
-    console.log('Fuentes configuradas, cargando...');
+    // Obtener el formato seleccionado (DASH por defecto)
+    const initialFormat = formatSelector ? formatSelector.value : 'dash';
+    console.log('Formato inicial:', initialFormat);
+    
+    // Cargar la fuente inicial
+    changeVideoFormat(initialFormat);
     
     // Configurar calidad automática por defecto
     window.player.tech_?.on('loadedmetadata', function() {
