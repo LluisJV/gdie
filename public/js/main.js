@@ -18,4 +18,16 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeVideoPlayer();
 
   console.log("Video page initialized successfully");
+
+  // Protocol switcher functionality
+  const protoSelect = document.getElementById("protocolSwitcher");
+  if (protoSelect) {
+    protoSelect.addEventListener("change", function () {
+      const selectedProto = this.value;
+      // Call the function to change protocol
+      if (typeof initializeVideoPlayer === "function") {
+        initializeVideoPlayer(selectedProto);
+      }
+    });
+  }
 });

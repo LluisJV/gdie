@@ -447,6 +447,62 @@
         padding: 5px 15px;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
       }
+
+      .protocol-switcher {
+        display: flex;
+        gap: 0.5em;
+        margin-bottom: 0.8em;
+      }
+      .protocol-switcher button {
+        padding: 0.4em 0.8em;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+      .protocol-switcher button.active {
+        background: #2c3e50;
+      }
+
+      .protocol-switcher-wrapper {
+        margin-top: 10px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .protocol-switcher select {
+        padding: 0.6em 1.2em;
+        font-size: 1rem;
+        border: none;
+        border-radius: 4px;
+        background: #3498db;
+        color: white;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .protocol-switcher select:hover {
+        background: #2980b9;
+      }
+
+      .protocol-switcher label {
+        font-size: 0.9rem;
+        color: #34495e;
+        margin-right: 10px;
+        align-self: center;
+      }
+
+      .quality-switcher {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .quality-switcher button.active {
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
@@ -473,16 +529,26 @@
           <span>Código: <span id="roomCode" class="room-code">----</span></span>
         </div>
 
+        <div id="qualitySwitcher" class="quality-switcher"></div>
         <video
           id="videoPlayer"
-          class="video-js vjs-default-skin vjs-big-play-centered"
+          class="video-js"
           controls
           preload="auto"
           crossorigin="anonymous"
-          data-setup='{"fluid": true}'
         >
           Tu navegador no soporta la reproducción de video.
         </video>
+
+        <!-- NUEVO: selector desplegable justo debajo del video -->
+        <div class="protocol-switcher-wrapper">
+          <label for="protocolSwitcher" class="sr-only">Selecciona protocolo:</label>
+          <select id="protocolSwitcher" class="protocol-switcher">
+            <option value="dash">DASH</option>
+            <option value="hls">HLS</option>
+            <option value="blockchain">Blockchain</option>
+          </select>
+        </div>
       </div>
       <div class="map-container">
         <div id="map"></div>
@@ -511,6 +577,8 @@
     <script src="js/map.js"></script>
     <script src="js/tts.js"></script>
     <script src="js/language.js"></script>
+    <!-- HTTP Source Selector plugin for Video.js -->
+    <script src="https://unpkg.com/videojs-http-source-selector/dist/videojs-http-source-selector.min.js"></script>
     <script src="js/player.js"></script>
     <script src="js/main.js"></script>
     <!-- Inline script to add quality selector if plugin doesn't load properly -->
@@ -525,14 +593,14 @@
             !player.controlBar.getChild("QualitySelector")
           ) {
             console.log("Adding quality menu manually");
-            createQualityMenu();
+            //createQualityMenu();
 
             // Crear también el menú de calidad de audio
-            createAudioQualityMenu();
+            //createAudioQualityMenu();
 
             // Añadir el botón TTS junto al botón de calidad después de crear el menú de calidad
             setTimeout(function () {
-              addTTSButtonNextToQuality();
+              //addTTSButtonNextToQuality();
 
               // Añadir listener para reposicionar el botón TTS cuando se cambie la calidad
               player.on("qualitySelected", function () {
