@@ -4,8 +4,9 @@
 const config = {
   // Video related variables
   video: {
-    // DASH manifest URL (se rellena en initializeConfig)
+    // DASH and HLS manifest URLs (se rellenan en initializeConfig)
     dashUrl: "",
+    hlsUrl: "",
     title: "Tour en la ciudad",
   },
 
@@ -65,8 +66,10 @@ function initializeConfig() {
   // Store the current city
   config.city.name = city;
 
-  // Construye la URL DASH usando el nombre de la ciudad
-  config.video.dashUrl = `https://gdie2504.ltim.uib.es/videos/${city}/out/manifest.mpd`;
+  // Construye las URLs DASH y HLS usando el nombre de la ciudad
+  const baseUrl = `https://gdie2504.ltim.uib.es/videos/${city}/out/`;
+  config.video.dashUrl = `${baseUrl}manifest.mpd`;
+  config.video.hlsUrl = `${baseUrl}manifest.m3u8`;
 
   // Rutas de los VTT
   const cityCap = city.charAt(0).toUpperCase() + city.slice(1);

@@ -66,12 +66,40 @@ function initializeVideoPlayer() {
     };
 
     // Aplicar configuración al reproductor
-    window.player.qualityLevels();
+    console.log('Configurando fuentes de video...');
+    console.log('Fuente DASH:', config.video.dashUrl);
+    console.log('Fuente HLS:', config.video.hlsUrl);
+    
+    // Configurar manejadores para rastrear la fuente
+    window.player.one('loadstart', function() {
+      console.log('Evento loadstart - Fuente actual:', window.player.currentSrc());
+    });
+    
+    window.player.one('loadedmetadata', function() {
+      console.log('Evento loadedmetadata');
+      console.log('Tecnología de streaming:', window.player.tech_?.vhs?.sourceType_ || 'No disponible');
+      console.log('URL de la fuente:', window.player.currentSrc());
+      
+      // Verificar si es DASH o HLS por la URL
+      const src = window.player.currentSrc() || '';
+      if (src.includes('.mpd')) {
+        console.log('Tipo de fuente detectado: DASH');
+      } else if (src.includes('.m3u8')) {
+        console.log('Tipo de fuente detectado: HLS');
+      } else {
+        console.log('Tipo de fuente no reconocido');
+      }
+    });
+    
     window.player.src([dashSource, hlsSource]);
+    console.log('Fuentes configuradas, cargando...');
     
     // Configurar calidad automática por defecto
-    window.player.tech_.on('loadedmetadata', function() {
-      if (window.player.tech_.vhs) {
+    window.player.tech_?.on('loadedmetadata', function() {
+      console.log('Tecnología de streaming (tech):', window.player.tech_?.vhs?.sourceType_ || 'No disponible');
+      console.log('Reproductor listo, URL actual:', window.player.currentSrc());
+      
+      if (window.player.tech_?.vhs) {
         const qualityLevels = window.player.qualityLevels();
         // Habilitar todas las calidades por defecto (modo automático)
         for (let i = 0; i < qualityLevels.length; i++) {
@@ -140,11 +168,18 @@ function initializeVideoPlayer() {
 
     // 6) Pista metadata para explicaciones
     const tracks = window.player.textTracks();
-    if (
-      ![...tracks].some(
-        (t) => t.kind === "metadata" && t.label === "Explicaciones"
-      )
-    ) {
+    let trackExists = false;
+    
+    // Verificar si ya existe la pista de explicaciones
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      if (track.kind === "metadata" && track.label === "Explicaciones") {
+        trackExists = true;
+        break;
+      }
+    }
+    
+    if (!trackExists) {
       window.player.addRemoteTextTrack(
         {
           kind: "metadata",
