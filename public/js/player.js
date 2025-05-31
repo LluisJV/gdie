@@ -25,9 +25,9 @@ function initializeVideoPlayer() {
         "fullscreenToggle",
       ],
     },
-    //plugins: {
-    //  qualitySelector: false,
-    //},
+    plugins: {
+      qualitySelector: false,
+    },
   });
 
   loadChaptersVTT();
@@ -40,13 +40,53 @@ function initializeVideoPlayer() {
     const wasPaused = window.player.paused();
     const currentTime = window.player.currentTime();
     
+    // Guardar el estado actual de los subtítulos
+    const activeTextTracks = Array.from(window.player.textTracks())
+      .filter(track => track.mode === 'showing')
+      .map(track => ({
+        language: track.language,
+        kind: track.kind,
+        label: track.label
+      }));
+    
     // Cargar la nueva fuente
     loadVideoSource(format);
     
-    // Restaurar el estado de reproducción
+    // Restaurar el estado de reproducción y los subtítulos
     window.player.one('loadedmetadata', function() {
       console.log('Fuente cargada, restaurando reproducción...');
+      
+      // Restaurar tiempo de reproducción
       window.player.currentTime(currentTime);
+      
+      // Función para restaurar los subtítulos
+      const restoreSubtitles = () => {
+        if (activeTextTracks.length > 0) {
+          const tracks = window.player.textTracks();
+          
+          // Primero, deshabilitar todos los tracks
+          for (let i = 0; i < tracks.length; i++) {
+            tracks[i].mode = 'disabled';
+          }
+          
+          // Luego, habilitar solo los que estaban activos
+          activeTextTracks.forEach(activeTrack => {
+            const track = Array.from(tracks).find(t => 
+              t.language === activeTrack.language && 
+              t.kind === activeTrack.kind
+            );
+            
+            if (track) {
+              track.mode = 'showing';
+            }
+          });
+        }
+      };
+      
+      // Restaurar subtítulos con un pequeño retraso para asegurar que los tracks estén cargados
+      setTimeout(restoreSubtitles, 300);
+      
+      // Restaurar reproducción si estaba en marcha
       if (!wasPaused) {
         window.player.play().catch(e => console.error('Error al reanudar la reproducción:', e));
       }
@@ -64,6 +104,10 @@ function initializeVideoPlayer() {
   // Función para cargar la fuente de video
   function loadVideoSource(format) {
     console.log('Cargando fuente:', format);
+    
+    // Guardar el estado actual de los controles
+    const controlBar = window.player.controlBar;
+    const wasFullscreen = document.fullscreenElement !== null;
     
     let source;
     
@@ -118,6 +162,14 @@ function initializeVideoPlayer() {
     // Configurar manejadores para rastrear la fuente
     window.player.one('loadstart', function() {
       console.log('Evento loadstart - Fuente actual:', window.player.currentSrc());
+      
+      // Asegurarse de que el botón de subtítulos esté presente
+      const subtitlesButton = window.player.controlBar.getChild('subtitlesButton');
+      if (!subtitlesButton) {
+        // Si no está, forzar la recreación de los controles
+        window.player.controlBar.removeChild('subtitlesButton');
+        window.player.controlBar.addChild('SubtitlesToggle', {});
+      }
     });
     
     window.player.one('loadedmetadata', function() {
@@ -134,6 +186,14 @@ function initializeVideoPlayer() {
       } else {
         console.log('Tipo de fuente no reconocido');
       }
+      
+      // Forzar la actualización de la interfaz de usuario
+      if (window.player.tech_ && window.player.tech_.trigger) {
+        window.player.tech_.trigger('loadstart');
+      }
+      
+      // Asegurarse de que el menú de calidad se actualice
+      createQualityMenu();
     });
   }
 
@@ -145,14 +205,11 @@ function initializeVideoPlayer() {
     const initialFormat = formatSelector ? formatSelector.value : 'dash';
     console.log('Formato inicial:', initialFormat);
     
-    // Cargar la fuente inicial
-    changeVideoFormat(initialFormat);
-    
-    // Configurar calidad automática por defecto
-    window.player.tech_?.on('loadedmetadata', function() {
-      console.log('Tecnología de streaming (tech):', window.player.tech_?.vhs?.sourceType_ || 'No disponible');
-      console.log('Reproductor listo, URL actual:', window.player.currentSrc());
+    // Función para configurar los controles personalizados del reproductor
+    const setupCustomControls = () => {
+      // No añadimos manualmente el botón de subtítulos, lo maneja Video.js
       
+      // Configurar el menú de calidad si es necesario
       if (window.player.tech_?.vhs) {
         const qualityLevels = window.player.qualityLevels();
         // Habilitar todas las calidades por defecto (modo automático)
@@ -167,8 +224,36 @@ function initializeVideoPlayer() {
         if (typeof window.videoQuality === 'undefined') {
           window.videoQuality = 'auto';
         }
-        createQualityMenu(); // Llama a la función que acabas de mover aquí
-        addTTSButtonNextToQuality(); // Llama a la función que acabas de mover aquí
+        
+        // Crear menú de calidad
+        createQualityMenu();
+        
+        // Añadir botón TTS
+        addTTSButtonNextToQuality();
+      }
+    };
+    
+    // Configurar controles personalizados al inicio
+    setupCustomControls();
+    
+    // Cargar la fuente inicial
+    changeVideoFormat(initialFormat);
+    
+    // Configurar manejador para cuando cambia la fuente
+    window.player.tech_?.on('loadedmetadata', function() {
+      console.log('Tecnología de streaming (tech):', window.player.tech_?.vhs?.sourceType_ || 'No disponible');
+      console.log('Reproductor listo, URL actual:', window.player.currentSrc());
+      
+      // Volver a configurar los controles personalizados
+      setupCustomControls();
+      
+      // Actualizar los niveles de calidad disponibles
+      if (window.player.tech_?.vhs) {
+        const qualityLevels = window.player.qualityLevels();
+        window.videoQualityLevels = qualityLevels;
+        
+        // Actualizar menú de calidad
+        createQualityMenu();
       }
     });
 
@@ -466,9 +551,15 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
- function createQualityMenu() {
+function createQualityMenu() {
           const player = videojs.getPlayer("videoPlayer");
           if (!player) return;
+
+          // Remove existing quality menu if it exists
+          const existingMenu = document.getElementById('qualityMenuWrapper');
+          if (existingMenu) {
+              existingMenu.remove();
+          }
 
           // Get available quality levels from the player
           const qualityLevels = player.qualityLevels ? Array.from(player.qualityLevels()) : [];
