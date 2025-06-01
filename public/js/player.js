@@ -26,7 +26,7 @@ function initializeVideoPlayer() {
       ],
     },
     plugins: {
-      qualitySelector: false,
+      //qualitySelector: false,
     },
   });
 
@@ -125,7 +125,7 @@ function initializeVideoPlayer() {
         
       case 'blockchain':
         source = {
-          src: 'https://media.thetavideoapi.com/org_q9ej3ubwdj5hx8k5er8vufksb6jg/srvacc_azhbaxmcf2eeswt0ky23ifjmc/video_u3bvycgd7dtvbgdy9xzpwn0nk2/master.m3u8',
+          src: 'https://media.thetavideoapi.com/org_q9ej3ubwdj5hx8k5er8vufksb6jg/srvacc_azhbaxmcf2eeswt0ky23ifjmc/video_njpq4siga41duccw7ysgr26s4y/master.m3u8',
           type: 'application/x-mpegURL',
           withCredentials: false
         };
@@ -168,7 +168,7 @@ function initializeVideoPlayer() {
       if (!subtitlesButton) {
         // Si no está, forzar la recreación de los controles
         window.player.controlBar.removeChild('subtitlesButton');
-        window.player.controlBar.addChild('SubtitlesToggle', {});
+        //window.player.controlBar.addChild('SubtitlesToggle', {});
       }
     });
     
@@ -200,6 +200,7 @@ function initializeVideoPlayer() {
   // Inicializar el reproductor
   window.player.ready(function () {
     console.log("Video.js player is ready");
+    setupTextTracks();
     
     // Obtener el formato seleccionado (DASH por defecto)
     const initialFormat = formatSelector ? formatSelector.value : 'dash';
@@ -246,6 +247,8 @@ function initializeVideoPlayer() {
       
       // Volver a configurar los controles personalizados
       setupCustomControls();
+
+      setupTextTracks();
       
       // Actualizar los niveles de calidad disponibles
       if (window.player.tech_?.vhs) {
@@ -546,6 +549,15 @@ function setupRemoteControl() {
 
 // Iniciar el control remoto cuando se cargue la página
 document.addEventListener("DOMContentLoaded", function () {
+
+  const params = new URLSearchParams(window.location.search);
+  const city = params.get("city")?.toLowerCase();
+
+  //Quitar la opción del blockchain si no es Madrid
+  if (city !== "madrid") {
+    const blockchainOption = document.querySelector('#streamFormat option[value="blockchain"]');
+    if (blockchainOption) blockchainOption.remove();
+  }
   // Call setupRemoteControl immediately instead of with a timeout
   setupRemoteControl();
 });
@@ -792,3 +804,74 @@ function createQualityMenu() {
             );
           }
         }
+
+  // Function to add/configure text tracks
+function setupTextTracks() {
+  const player = window.player;
+
+  // Clear existing remote text tracks to avoid duplicates or old tracks
+  Array.from(player.remoteTextTracks()).forEach((t) => player.removeRemoteTextTrack(t));
+
+  const cityCap = config.city.name.charAt(0).toUpperCase() + config.city.name.slice(1);
+
+  // Español
+  player.addRemoteTextTrack(
+    {
+      kind: "subtitles",
+      srclang: "es",
+      label: "Español",
+      src: `vtts/${config.city.name}/subtitulos${cityCap}.vtt`,
+      default: config.language.current === "es",
+    },
+    false
+  );
+  // Inglés
+  player.addRemoteTextTrack(
+    {
+      kind: "subtitles",
+      srclang: "en",
+      label: "English",
+      src: `vtts/${config.city.name}/subtitulos${cityCap}_en.vtt`,
+    },
+    false
+  );
+  // Català
+  player.addRemoteTextTrack(
+    {
+      kind: "subtitles",
+      srclang: "ca",
+      label: "Català",
+      src: `vtts/${config.city.name}/subtitulos${cityCap}_ca.vtt`,
+    },
+    false
+  );
+
+  // Also re-add your metadata track if it's specific to the player setup
+  // 6) Pista metadata para explicaciones
+  let trackExists = false;
+  const tracks = player.textTracks(); // Get current tracks
+  for (let i = 0; i < tracks.length; i++) {
+    const track = tracks[i];
+    if (track.kind === "metadata" && track.label === "Explicaciones") {
+      trackExists = true;
+      break;
+    }
+  }
+
+  if (!trackExists) {
+    player.addRemoteTextTrack(
+      {
+        kind: "metadata",
+        src: config.vtt.explanations,
+        label: "Explicaciones",
+        default: true,
+      },
+      false
+    );
+  }
+
+  // Set initial subtitle language based on config
+  setSubtitles(config.language.current);
+  loadVTTContent(); // Assuming this is related to metadata cues or TTS
+}
+
